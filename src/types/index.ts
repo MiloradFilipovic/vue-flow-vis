@@ -5,7 +5,6 @@ export type RenderTriggeredEvent = DebuggerEvent
 
 export type FlowVisOptions = {
   enabled?: boolean
-  logToConsole?: boolean
   logToTable?: boolean
   excludeComponents?: string[]
   includeComponents?: string[]

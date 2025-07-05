@@ -15,8 +15,7 @@ export class ComponentMonitor {
   constructor(options: FlowVisOptions = {}) {
     this.options = {
       enabled: true,
-      logToConsole: true,
-      logToTable: true,
+      logToTable: false,
       excludeComponents: [],
       includeComponents: [],
       trackRenderCycles: true,
@@ -72,12 +71,10 @@ export class ComponentMonitor {
       this.lastRenderTime.set(data.componentName, now)
       
       // Log the event
-      if (this.options.logToConsole) {
-        if (type === 'tracked') {
-          this.logger.tracked(data)
-        } else {
-          this.logger.triggered(data)
-        }
+      if (type === 'tracked') {
+        this.logger.tracked(data)
+      } else {
+        this.logger.triggered(data)
       }
       
       // Custom callbacks

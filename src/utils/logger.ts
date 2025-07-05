@@ -7,7 +7,7 @@ export class ConsoleLogger implements Logger {
   
   constructor(options: { groupByComponent?: boolean; useTable?: boolean } = {}) {
     this.groupByComponent = options.groupByComponent ?? false
-    this.useTable = options.useTable ?? true
+    this.useTable = options.useTable ?? false
   }
   
   tracked(data: RenderEventData): void {
@@ -57,6 +57,7 @@ export class ConsoleLogger implements Logger {
         })
       }
       console.table(tableData)
+      console.log(' [ORIGINAL EVENT]', event)
     } else {
       console.log('Event Details:', {
         path: componentPath,
