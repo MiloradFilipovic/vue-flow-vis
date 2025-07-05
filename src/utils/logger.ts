@@ -3,7 +3,8 @@ import type { Logger, RenderEventData, ComponentMetadata } from '../types'
 export class ConsoleLogger implements Logger {
   private groupByComponent: boolean
   private useTable: boolean
-  private componentGroups = new Map<string, boolean>()
+  private componentEventBuffers = new Map<string, Array<{ type: string; data: RenderEventData; color: string }>>()
+  private flushTimeout: NodeJS.Timeout | null = null
   
   constructor(options: { groupByComponent?: boolean; useTable?: boolean } = {}) {
     this.groupByComponent = options.groupByComponent ?? false
@@ -31,14 +32,46 @@ export class ConsoleLogger implements Logger {
   }
   
   private logEvent(type: string, data: RenderEventData, color: string): void {
-    const { componentName, event, componentPath } = data
+    const { componentName } = data
     
     if (this.groupByComponent) {
-      if (!this.componentGroups.has(componentName)) {
-        console.groupCollapsed(`%c${componentName}`, 'font-weight: bold')
-        this.componentGroups.set(componentName, true)
+      // Buffer events by component and flush periodically
+      if (!this.componentEventBuffers.has(componentName)) {
+        this.componentEventBuffers.set(componentName, [])
       }
+      
+      this.componentEventBuffers.get(componentName)!.push({ type, data, color })
+      
+      // Debounce flush to group events that happen close together
+      if (this.flushTimeout) {
+        clearTimeout(this.flushTimeout)
+      }
+      this.flushTimeout = setTimeout(() => this.flushComponentEvents(), 100)
+    } else {
+      this.logSingleEvent(type, data, color)
     }
+  }
+  
+  private flushComponentEvents(): void {
+    for (const [componentName, events] of this.componentEventBuffers.entries()) {
+      if (events.length === 0) continue
+      
+      // Create a fresh group for this batch
+      console.groupCollapsed(`%c🔄 ${componentName} (${events.length} events)`, 'font-weight: bold; color: #666')
+      
+      events.forEach(({ type, data, color }) => {
+        this.logSingleEvent(type, data, color)
+      })
+      
+      console.groupEnd()
+    }
+    
+    // Clear all buffers
+    this.componentEventBuffers.clear()
+  }
+  
+  private logSingleEvent(type: string, data: RenderEventData, color: string): void {
+    const { componentName, event, componentPath } = data
     
     console.log(
       `%c[${type}] ${componentName}`,
