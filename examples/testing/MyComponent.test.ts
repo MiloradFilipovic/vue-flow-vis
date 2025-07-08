@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils'
-import { FlowVisPlugin } from 'vue-component-monitor'
+import { FlowVisPlugin } from 'vue-flow-vis'
 
 describe('Component Performance', () => {
   it('should not re-render excessively', async () => {

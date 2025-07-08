@@ -26,7 +26,7 @@ pnpm add vue-flow-vis --dev
 // main.ts
 import { createApp } from 'vue'
 import App from './App.vue'
-import { FlowVisPlugin } from 'vue-component-monitor'
+import { FlowVisPlugin } from 'vue-flow-vis'
 
 const app = createApp(App)
 
