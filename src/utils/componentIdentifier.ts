@@ -6,19 +6,19 @@ export class ComponentIdentifier {
     if (!instance) return 'Unknown'
     
     const strategies: Array<() => string | undefined> = [
-      () => instance.type.name,
-      () => instance.type.__name,
-      () => (instance.type as any).__vccOpts?.name,
-      () => instance.type.__file?.match(/([^/]+)\.vue$/)?.[1],
-      () => this.getFileBasedName(instance),
-      () => `Component-${instance.uid}`
+      (): string | undefined => instance.type.name,
+      (): string | undefined => instance.type.__name,
+      (): string | undefined => (instance.type as { __vccOpts?: { name?: string } }).__vccOpts?.name,
+      (): string | undefined => instance.type.__file?.match(/([^/]+)\.vue$/)?.[1],
+      (): string | undefined => this.getFileBasedName(instance),
+      (): string | undefined => `Component-${instance.uid}`
     ]
     
     for (const strategy of strategies) {
       try {
         const name = strategy()
         if (name) return name
-      } catch (e) {
+      } catch {
         // Continue to next strategy
       }
     }
@@ -47,8 +47,8 @@ export class ComponentIdentifier {
       props: Object.keys(instance.props || {}),
       emits: Array.isArray(instance.type.emits) 
         ? instance.type.emits 
-        : Object.keys(instance.type.emits || {}),
-      isSetup: !!(instance as any).setupState,
+        : Object.keys((instance.type.emits as Record<string, unknown>) || {}),
+      isSetup: !!(instance as { setupState?: unknown }).setupState,
       parentName: instance.parent ? this.getComponentName(instance.parent) : undefined
     }
   }

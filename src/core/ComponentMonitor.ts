@@ -24,8 +24,8 @@ export class ComponentMonitor {
       batchLogs: true,
       batchWindow: options.batchWindow ?? DEFAULT_BATCH_WINDOW,
       performanceThreshold: 16,
-      onRenderTracked: () => {},
-      onRenderTriggered: () => {},
+      onRenderTracked: (): void => {},
+      onRenderTriggered: (): void => {},
       customLogger: new ConsoleLogger({
         batchLogs: options.batchLogs,
         useTable: options.logToTable,

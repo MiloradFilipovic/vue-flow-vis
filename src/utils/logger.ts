@@ -6,7 +6,7 @@ export class ConsoleLogger implements Logger {
   private useTable: boolean
   private batchWindow: number
   private componentEventBuffers = new Map<string, Array<{ type: string; data: RenderEventData; color: string }>>()
-  private flushTimeout: ReturnType<typeof setTimeout> | null = null
+  private flushTimeout: number | null = null
   
   constructor(options: { batchLogs?: boolean; useTable?: boolean, batchWindow?: number } = {}) {
     this.batchLogs = options.batchLogs ?? false
@@ -30,7 +30,7 @@ export class ConsoleLogger implements Logger {
     )
   }
   
-  error(error: Error, context?: any): void {
+  error(error: Error, context?: unknown): void {
     console.error('[ComponentMonitor Error]', error, context)
   }
   
@@ -47,9 +47,9 @@ export class ConsoleLogger implements Logger {
       
       // Debounce flush to group events that happen close together
       if (this.flushTimeout) {
-        clearTimeout(this.flushTimeout)
+        globalThis.clearTimeout(this.flushTimeout)
       }
-      this.flushTimeout = setTimeout(() => this.flushComponentEvents(), this.batchWindow)
+      this.flushTimeout = globalThis.setTimeout(() => this.flushComponentEvents(), this.batchWindow)
     } else {
       this.logSingleEvent(type, data, color)
     }
@@ -82,14 +82,14 @@ export class ConsoleLogger implements Logger {
     )
     
     if (this.useTable) {
-      const tableData = {
+      const tableData: Record<string, unknown> = {
         'Component Path': componentPath,
-        'Property': event.key,
+        'Property': event.key as string,
         'Operation': event.type,
         'Target Type': event.target?.constructor?.name,
-        ...(type === 'TRIGGERED' && {
-          'Old Value': (event as any).oldValue,
-          'New Value': (event as any).newValue
+        ...(type === 'TRIGGERED' && 'oldValue' in event && {
+          'Old Value': (event as { oldValue: unknown }).oldValue,
+          'New Value': (event as { newValue: unknown }).newValue
         })
       }
       console.table(tableData)
