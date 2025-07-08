@@ -27,9 +27,9 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.js"
     }
   },
   "files": [
@@ -42,12 +42,26 @@
     "dev": "tsup --watch",
     "test": "vitest",
     "prepublishOnly": "npm run build",
-    "version": "npm run build"
+    "version": "npm run build",
+    "size": "size-limit",
+    "analyze": "size-limit --why"
   },
+  "size-limit": [
+    {
+      "path": "dist/index.js",
+      "limit": "15 KB"
+    },
+    {
+      "path": "dist/index.mjs",
+      "limit": "15 KB"
+    }
+  ],
   "peerDependencies": {
     "vue": "^3.3.0"
   },
   "devDependencies": {
+    "@size-limit/preset-small-lib": "^11.2.0",
+    "@types/node": "^24.0.11",
     "@typescript-eslint/eslint-plugin": "^8.36.0",
     "@typescript-eslint/parser": "^8.36.0",
     "eslint": "^9.30.1",
@@ -55,6 +69,7 @@
     "eslint-plugin-vue": "^10.3.0",
     "husky": "^9.1.7",
     "prettier": "^3.6.2",
+    "size-limit": "^11.2.0",
     "tsup": "^8.5.0",
     "vue": "^3.5.17"
   },
