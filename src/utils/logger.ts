@@ -1,14 +1,17 @@
+import { DEFAULT_BATCH_WINDOW } from '../constants'
 import type { Logger, RenderEventData, ComponentMetadata } from '../types'
 
 export class ConsoleLogger implements Logger {
-  private groupByComponent: boolean
+  private batchLogs: boolean
   private useTable: boolean
+  private batchWindow: number
   private componentEventBuffers = new Map<string, Array<{ type: string; data: RenderEventData; color: string }>>()
-  private flushTimeout: NodeJS.Timeout | null = null
+  private flushTimeout: ReturnType<typeof setTimeout> | null = null
   
-  constructor(options: { groupByComponent?: boolean; useTable?: boolean } = {}) {
-    this.groupByComponent = options.groupByComponent ?? false
+  constructor(options: { batchLogs?: boolean; useTable?: boolean, batchWindow?: number } = {}) {
+    this.batchLogs = options.batchLogs ?? false
     this.useTable = options.useTable ?? false
+    this.batchWindow = options.batchWindow ?? DEFAULT_BATCH_WINDOW
   }
   
   tracked(data: RenderEventData): void {
@@ -34,7 +37,7 @@ export class ConsoleLogger implements Logger {
   private logEvent(type: string, data: RenderEventData, color: string): void {
     const { componentName } = data
     
-    if (this.groupByComponent) {
+    if (this.batchLogs) {
       // Buffer events by component and flush periodically
       if (!this.componentEventBuffers.has(componentName)) {
         this.componentEventBuffers.set(componentName, [])
@@ -46,7 +49,7 @@ export class ConsoleLogger implements Logger {
       if (this.flushTimeout) {
         clearTimeout(this.flushTimeout)
       }
-      this.flushTimeout = setTimeout(() => this.flushComponentEvents(), 100)
+      this.flushTimeout = setTimeout(() => this.flushComponentEvents(), this.batchWindow)
     } else {
       this.logSingleEvent(type, data, color)
     }

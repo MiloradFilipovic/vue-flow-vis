@@ -10,7 +10,8 @@ export type FlowVisOptions = {
   includeComponents?: string[]
   trackRenderCycles?: boolean
   trackMounts?: boolean
-  groupByComponent?: boolean
+  batchLogs?: boolean
+  batchWindow?: number
   performanceThreshold?: number
   onRenderTracked?: (data: RenderEventData) => void
   onRenderTriggered?: (data: RenderEventData) => void

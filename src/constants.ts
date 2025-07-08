@@ -1,0 +1,1 @@
+export const DEFAULT_BATCH_WINDOW = 300 // Default batch window in milliseconds

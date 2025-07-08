@@ -1,3 +1,4 @@
+import { DEFAULT_BATCH_WINDOW } from '../constants'
 import type { 
   FlowVisOptions, 
   RenderEventData, 
@@ -20,13 +21,15 @@ export class ComponentMonitor {
       includeComponents: [],
       trackRenderCycles: true,
       trackMounts: true,
-      groupByComponent: false,
+      batchLogs: true,
+      batchWindow: options.batchWindow ?? DEFAULT_BATCH_WINDOW,
       performanceThreshold: 16,
       onRenderTracked: () => {},
       onRenderTriggered: () => {},
       customLogger: new ConsoleLogger({
-        groupByComponent: options.groupByComponent,
-        useTable: options.logToTable
+        batchLogs: options.batchLogs,
+        useTable: options.logToTable,
+        batchWindow: options.batchWindow ?? DEFAULT_BATCH_WINDOW
       }),
       ...options
     }
