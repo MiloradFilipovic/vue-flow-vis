@@ -22,6 +22,8 @@
   "bugs": {
     "url": "https://github.com/MiloradFilipovic/vue-flow-vis/issues"
   },
+  "sideEffects": false,
+  "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -40,6 +42,9 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
+    "lint": "eslint . --ext .ts,.js",
+    "lint:fix": "eslint . --ext .ts,.js --fix",
+    "type-check": "tsc --noEmit",
     "test": "vitest",
     "prepublishOnly": "npm run build",
     "version": "npm run build",
