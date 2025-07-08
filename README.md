@@ -37,6 +37,7 @@ app.mount('#app')
 ```
 
 That's it! The plugin will automatically start monitoring all your components.
+
 More examples can be found in [examples](./examples) directory.
 
 ## Configuration Options
@@ -66,4 +67,4 @@ Check if a similar issue already exists before submitting.
 
 ## License
 
-MIT License - see LICENSE file for details
+MIT License - see [LICENSE](./LICENSE) file for details
