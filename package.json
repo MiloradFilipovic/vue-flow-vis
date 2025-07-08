@@ -1,0 +1,67 @@
+{
+  "name": "vue-flow-vis",
+  "version": "1.0.0",
+  "description": "Real-time monitoring of Vue 3 component renders and reactive dependencies",
+  "keywords": [
+    "vue",
+    "vue3",
+    "monitoring",
+    "debugging",
+    "development",
+    "performance",
+    "typescript",
+    "devtools"
+  ],
+  "author": "Milorad Filipović <milorad.filipovic19@gmail.com>",
+  "license": "MIT",
+  "homepage": "https://github.com/MiloradFilipovic/vue-flow-vis#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MiloradFilipovic/vue-flow-vis.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MiloradFilipovic/vue-flow-vis/issues"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest",
+    "prepublishOnly": "npm run build",
+    "version": "npm run build"
+  },
+  "peerDependencies": {
+    "vue": "^3.3.0"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.36.0",
+    "@typescript-eslint/parser": "^8.36.0",
+    "eslint": "^9.30.1",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-vue": "^10.3.0",
+    "husky": "^9.1.7",
+    "prettier": "^3.6.2",
+    "tsup": "^8.5.0",
+    "vue": "^3.5.17"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

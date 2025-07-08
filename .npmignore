@@ -1,0 +1,33 @@
+# Source files
+src/
+*.ts
+!*.d.ts
+
+# Config files
+tsconfig.json
+tsup.config.ts
+vite.config.ts
+vitest.config.ts
+
+# Development files
+.gitignore
+.eslintrc
+.prettierrc
+*.test.ts
+*.spec.ts
+
+# Examples and docs
+examples/
+docs/
+*.md
+!README.md
+
+# Build artifacts
+.cache/
+coverage/
+.vscode/
+.idea/
+*.log
+
+
+static/
