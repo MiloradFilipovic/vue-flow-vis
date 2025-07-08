@@ -6,7 +6,7 @@ export class ConsoleLogger implements Logger {
   private useTable: boolean
   private batchWindow: number
   private componentEventBuffers = new Map<string, Array<{ type: string; data: RenderEventData; color: string }>>()
-  private flushTimeout: number | null = null
+  private flushTimeout: ReturnType<typeof globalThis.setTimeout> | null = null
   
   constructor(options: { batchLogs?: boolean; useTable?: boolean, batchWindow?: number } = {}) {
     this.batchLogs = options.batchLogs ?? false
