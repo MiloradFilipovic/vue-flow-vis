@@ -74,7 +74,6 @@
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-vue": "^10.3.0",
     "husky": "^8.0.0",
-    "lint-staged": "^16.1.2",
     "prettier": "^3.6.2",
     "size-limit": "^11.2.0",
     "tsup": "^8.5.0",
