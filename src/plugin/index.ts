@@ -32,28 +32,34 @@ export const FlowVisPlugin: Plugin<FlowVisOptions> = {
         
         if (!monitor.shouldMonitorComponent(componentName)) return
         
-        const componentPath = ComponentIdentifier.getComponentPath(instance)
-        const metadata = ComponentIdentifier.extractMetadata(instance)
+        // Lazy path computation - only compute when first render event occurs
+        let componentPath: string | undefined
         
         onRenderTracked((event: DebuggerEvent) => {
+          if (!componentPath) {
+            componentPath = ComponentIdentifier.getComponentPath(instance)
+          }
           monitor.logRenderEvent('tracked', {
             componentName,
             componentPath,
             event,
             timestamp: Date.now(),
             instanceId: instance.uid,
-            metadata
+            instance
           })
         })
         
         onRenderTriggered((event: DebuggerEvent) => {
+          if (!componentPath) {
+            componentPath = ComponentIdentifier.getComponentPath(instance)
+          }
           monitor.logRenderEvent('triggered', {
             componentName,
             componentPath,
             event,
             timestamp: Date.now(),
             instanceId: instance.uid,
-            metadata
+            instance
           })
         })
       },

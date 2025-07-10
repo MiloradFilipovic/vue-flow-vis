@@ -10,7 +10,6 @@ export type FlowVisOptions = {
   includeComponents?: string[]
   batchLogs?: boolean
   batchWindow?: number
-  performanceThreshold?: number
   onRenderTracked?: (data: RenderEventData) => void
   onRenderTriggered?: (data: RenderEventData) => void
   customLogger?: Logger
@@ -23,6 +22,7 @@ export type RenderEventData = {
   timestamp: number
   instanceId: number
   metadata?: ComponentMetadata
+  instance?: import('vue').ComponentInternalInstance
 }
 
 export type ComponentMetadata = {

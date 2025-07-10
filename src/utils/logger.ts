@@ -9,7 +9,7 @@ export class ConsoleLogger implements Logger {
   private flushTimeout: ReturnType<typeof globalThis.setTimeout> | null = null
   
   constructor(options: { batchLogs?: boolean; useTable?: boolean, batchWindow?: number } = {}) {
-    this.batchLogs = options.batchLogs ?? false
+    this.batchLogs = options.batchLogs ?? true
     this.useTable = options.useTable ?? false
     this.batchWindow = options.batchWindow ?? DEFAULT_BATCH_WINDOW
   }

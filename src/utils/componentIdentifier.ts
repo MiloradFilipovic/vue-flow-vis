@@ -2,8 +2,15 @@ import type { ComponentInternalInstance } from 'vue'
 import type { ComponentMetadata } from '../types'
 
 export class ComponentIdentifier {
+  private static nameCache = new WeakMap<ComponentInternalInstance, string>()
+  private static pathCache = new WeakMap<ComponentInternalInstance, string>()
+  
   static getComponentName(instance: ComponentInternalInstance | null): string {
     if (!instance) return 'Unknown'
+    
+    // Check cache first
+    const cached = this.nameCache.get(instance)
+    if (cached) return cached
     
     const strategies: Array<() => string | undefined> = [
       (): string | undefined => instance.type.name,
@@ -14,28 +21,43 @@ export class ComponentIdentifier {
       (): string | undefined => `Component-${instance.uid}`
     ]
     
+    let name = 'Anonymous'
     for (const strategy of strategies) {
       try {
-        const name = strategy()
-        if (name) return name
+        const result = strategy()
+        if (result) {
+          name = result
+          break
+        }
       } catch {
         // Continue to next strategy
       }
     }
     
-    return 'Anonymous'
+    // Cache the result
+    this.nameCache.set(instance, name)
+    return name
   }
   
   static getComponentPath(instance: ComponentInternalInstance | null): string {
+    if (!instance) return 'Unknown'
+    
+    // Check cache first
+    const cached = this.pathCache.get(instance)
+    if (cached) return cached
+    
     const path: string[] = []
-    let current = instance
+    let current: ComponentInternalInstance | null = instance
     
     while (current) {
       path.unshift(this.getComponentName(current))
       current = current.parent
     }
     
-    return path.join(' → ')
+    const pathString = path.join(' → ')
+    // Cache the result
+    this.pathCache.set(instance, pathString)
+    return pathString
   }
   
   static extractMetadata(instance: ComponentInternalInstance): ComponentMetadata {
@@ -51,6 +73,10 @@ export class ComponentIdentifier {
       isSetup: !!(instance as { setupState?: unknown }).setupState,
       parentName: instance.parent ? this.getComponentName(instance.parent) : undefined
     }
+  }
+  
+  static extractLazyMetadata(instance: ComponentInternalInstance): () => ComponentMetadata {
+    return () => this.extractMetadata(instance)
   }
   
   private static getFileBasedName(instance: ComponentInternalInstance): string | undefined {

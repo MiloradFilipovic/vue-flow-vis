@@ -3,7 +3,6 @@ app.use(FlowVisPlugin, {
   logToTable: true,
   groupByComponent: true,
   excludeComponents: ['Transition', 'KeepAlive'],
-  performanceThreshold: 16,
   onRenderTriggered: (data) => {
     // Breakpoint for specific component debugging
     if (data.componentName === 'ProblematicComponent') {

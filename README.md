@@ -52,7 +52,6 @@ type FlowVisOptions = {
   includeComponents?: string[]  // Only monitor these components (overrides exclude)
   batchLogs?: boolean           // Group console logs by component (default: true)
   batchWindow?: number          // Delay in ms before flushing batched logs (default: 500)
-  performanceThreshold?: number // Time threshold in ms for performance warnings (default: 16)
   onRenderTracked?: (data: RenderEventData) => void   // Custom callback for tracked events
   onRenderTriggered?: (data: RenderEventData) => void // Custom callback for triggered events
   customLogger?: Logger         // Custom logger implementation

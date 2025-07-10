@@ -5,9 +5,7 @@ describe('Component Performance', () => {
   it('should not re-render excessively', async () => {
     const wrapper = mount(MyComponent, {
       global: {
-        plugins: [[FlowVisPlugin, { 
-          performanceThreshold: 16 
-        }]]
+        plugins: [[FlowVisPlugin]]
       }
     })
     
