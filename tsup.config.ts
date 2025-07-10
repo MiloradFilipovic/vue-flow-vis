@@ -4,15 +4,7 @@ import { version } from './package.json'
 export default defineConfig({
   entry: ['src/index.ts'],
   format: ['cjs', 'esm'],
-  dts: {
-    resolve: true,
-    entry: './src/index.ts',
-    compilerOptions: {
-      moduleResolution: 'node',
-      module: 'ES2020',
-      target: 'ES2020'
-    }
-  },
+  dts: true,
   splitting: false,
   sourcemap: false,
   minify: true,

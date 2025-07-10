@@ -1,4 +1,4 @@
-import type { DebuggerEvent } from 'vue'
+import type { DebuggerEvent, Plugin } from 'vue'
 
 export type RenderTrackedEvent = DebuggerEvent
 export type RenderTriggeredEvent = DebuggerEvent
@@ -44,3 +44,6 @@ export type Logger = {
   mounted(metadata: ComponentMetadata): void
   error(error: Error, context?: unknown): void
 }
+
+
+export declare const FlowVisPlugin: Plugin<FlowVisOptions>;

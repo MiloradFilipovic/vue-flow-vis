@@ -141,3 +141,4 @@ vite.config.ts.timestamp-*
 
 # Mac system files
 .DS_Store
+CLAUDE.md

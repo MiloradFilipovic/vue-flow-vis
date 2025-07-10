@@ -10,8 +10,8 @@ declare module '@vue/runtime-core' {
   }
 }
 
-export const FlowVisPlugin: Plugin<[FlowVisOptions?]> = {
-  install(app: App, options: FlowVisOptions = {}) {
+export const FlowVisPlugin: Plugin<FlowVisOptions> = {
+  install(app: App, options?: FlowVisOptions) {
     // Only enable in development
     if (!__DEV__) {
       console.warn('FlowVisPlugin is disabled in production')
