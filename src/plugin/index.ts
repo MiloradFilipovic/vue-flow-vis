@@ -23,7 +23,7 @@ export const FlowVisPlugin: Plugin<FlowVisOptions> = {
     // Global mixin
     app.mixin({
       created() {
-        if (!monitor.options.enabled || !monitor.options.trackRenderCycles) return
+        if (!monitor.options.enabled) return
         
         const instance = getCurrentInstance()
         if (!instance) return
@@ -57,14 +57,6 @@ export const FlowVisPlugin: Plugin<FlowVisOptions> = {
           })
         })
       },
-      
-      mounted() {
-        const instance = getCurrentInstance()
-        if (!instance) return
-        
-        const metadata = ComponentIdentifier.extractMetadata(instance)
-        monitor.logMount(metadata)
-      }
     })
     
     // Make available globally

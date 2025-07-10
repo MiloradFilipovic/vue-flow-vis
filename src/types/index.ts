@@ -8,8 +8,6 @@ export type FlowVisOptions = {
   logToTable?: boolean
   excludeComponents?: string[]
   includeComponents?: string[]
-  trackRenderCycles?: boolean
-  trackMounts?: boolean
   batchLogs?: boolean
   batchWindow?: number
   performanceThreshold?: number

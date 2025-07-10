@@ -50,8 +50,6 @@ type FlowVisOptions = {
   logToTable?: boolean          // Use console.table for output (default: false)
   excludeComponents?: string[]  // Components to exclude from monitoring
   includeComponents?: string[]  // Only monitor these components (overrides exclude)
-  trackRenderCycles?: boolean   // Track render events (default: true)
-  trackMounts?: boolean         // Track component mounts (default: true)
   batchLogs?: boolean           // Group console logs by component (default: true)
   batchWindow?: number          // Delay in ms before flushing batched logs (default: 500)
   performanceThreshold?: number // Time threshold in ms for performance warnings (default: 16)

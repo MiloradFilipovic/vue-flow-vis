@@ -3,7 +3,6 @@ import type {
   FlowVisOptions, 
   RenderEventData, 
   Logger,
-  ComponentMetadata 
 } from '../types'
 import { ConsoleLogger } from '../utils/logger'
 
@@ -19,8 +18,6 @@ export class ComponentMonitor {
       logToTable: false,
       excludeComponents: [],
       includeComponents: [],
-      trackRenderCycles: true,
-      trackMounts: true,
       batchLogs: true,
       batchWindow: options.batchWindow ?? DEFAULT_BATCH_WINDOW,
       performanceThreshold: 16,
@@ -88,14 +85,6 @@ export class ComponentMonitor {
       }
     } catch (error) {
       this.logger.error(error as Error, { type, data })
-    }
-  }
-  
-  logMount(metadata: ComponentMetadata): void {
-    if (!this.options.enabled || !this.options.trackMounts) return
-    
-    if (this.shouldMonitorComponent(metadata.name)) {
-      this.logger.mounted(metadata)
     }
   }
   
