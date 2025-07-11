@@ -45,12 +45,9 @@
     "lint": "eslint . --ext .ts,.js",
     "lint:fix": "eslint . --ext .ts,.js --fix",
     "type-check": "tsc --noEmit",
-    "test": "vitest",
-    "prepublishOnly": "npm run build",
-    "version": "npm run build",
     "size": "size-limit",
-    "analyze": "size-limit --why",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "init": "npm run prepare && npm install"
   },
   "size-limit": [
     {

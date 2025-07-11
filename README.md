@@ -57,6 +57,15 @@ type FlowVisOptions = {
   customLogger?: Logger         // Custom logger implementation
 }
 ```
+
+## Development setup
+```bash
+# Initialize husky hooks and install dependencies
+npm run init
+# Start watch mode
+npm run dev
+```
+
 ## Bug reports & feature requests
 Feel free to submit github issue here and use appropriate labels (`bug-report`/`feature-request`).
 
