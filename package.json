@@ -55,15 +55,15 @@
   "size-limit": [
     {
       "path": "dist/index.js",
-      "limit": "3 KB"
+      "limit": "2 KB"
     },
     {
       "path": "dist/index.cjs",
-      "limit": "3 KB"
+      "limit": "2 KB"
     }
   ],
   "peerDependencies": {
-    "vue": "^3.5.0"
+    "vue": "^3.0.0"
   },
   "devDependencies": {
     "@size-limit/preset-small-lib": "^11.2.0",

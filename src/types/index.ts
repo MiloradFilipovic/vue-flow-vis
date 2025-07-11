@@ -44,4 +44,4 @@ export type Logger = {
 }
 
 
-export declare const FlowVisPlugin: Plugin<FlowVisOptions>;
+export declare const FlowVisPlugin: Plugin<[FlowVisOptions?]>
