@@ -2,9 +2,12 @@
 
 Vue 3 plugin that provides real-time monitoring of component renders using Vue's built-in debugging hooks.
 
+![NPM Version](https://img.shields.io/npm/v/vue-flow-vis)
 ![Vue](https://img.shields.io/badge/Vue-3.x-brightgreen.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)
 ![Development](https://img.shields.io/badge/Environment-Development_Only-orange.svg)
+
+
 
 ## Log Example
 
