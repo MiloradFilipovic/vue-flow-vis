@@ -1,6 +1,6 @@
 # `vue-flow-vis`
 
-Vue 3 plugin that provides real-time monitoring of component renders using Vue's built-in debugging hooks.
+A Vue 3 development plugin that provides real-time insights into component rendering behavior. Monitor which components re-render, what triggers the updates, and track reactive dependencies using Vue's built-in debugging hooks ([`onRenderTriggered`](https://vuejs.org/api/composition-api-lifecycle.html#onrendertriggered) and [`onRenderTracked`](https://vuejs.org/api/composition-api-lifecycle.html#onrendertracked)).
 
 ![NPM Version](https://img.shields.io/npm/v/vue-flow-vis)
 ![Vue](https://img.shields.io/badge/Vue-3.x-brightgreen.svg)
@@ -12,6 +12,10 @@ Vue 3 plugin that provides real-time monitoring of component renders using Vue's
 ## Log Example
 
 ![image info](./static/README_screen.png)
+
+In this example, a user interaction triggered the `Logo` component to re-render due to a change in the `size` reactive property.
+
+Additionally, 30 render events from `Background` components were logged.
 
 ## Installation
 
