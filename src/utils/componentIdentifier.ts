@@ -13,10 +13,10 @@ export class ComponentIdentifier {
     if (cached) return cached
     
     const strategies: Array<() => string | undefined> = [
-      (): string | undefined => instance.type.name,
-      (): string | undefined => instance.type.__name,
-      (): string | undefined => (instance.type as { __vccOpts?: { name?: string } }).__vccOpts?.name,
-      (): string | undefined => instance.type.__file?.match(/([^/]+)\.vue$/)?.[1],
+      (): string | undefined => instance.type?.name,
+      (): string | undefined => instance.type?.__name,
+      (): string | undefined => (instance.type as { __vccOpts?: { name?: string } })?.__vccOpts?.name,
+      (): string | undefined => instance.type?.__file?.match(/([^/]+)\.vue$/)?.[1],
       (): string | undefined => this.getFileBasedName(instance),
       (): string | undefined => `Component-${instance.uid}`
     ]
@@ -47,9 +47,17 @@ export class ComponentIdentifier {
     if (cached) return cached
     
     const path: string[] = []
+    const visited = new Set<ComponentInternalInstance>()
     let current: ComponentInternalInstance | null = instance
     
     while (current) {
+      // Prevent infinite loops with circular references
+      if (visited.has(current)) {
+        path.unshift(`${this.getComponentName(current)} [CIRCULAR]`)
+        break
+      }
+      
+      visited.add(current)
       path.unshift(this.getComponentName(current))
       current = current.parent
     }
@@ -65,11 +73,11 @@ export class ComponentIdentifier {
       name: this.getComponentName(instance),
       path: this.getComponentPath(instance),
       uid: instance.uid,
-      file: instance.type.__file,
+      file: instance.type?.__file,
       props: Object.keys(instance.props || {}),
-      emits: Array.isArray(instance.type.emits) 
+      emits: Array.isArray(instance.type?.emits) 
         ? instance.type.emits 
-        : Object.keys((instance.type.emits as Record<string, unknown>) || {}),
+        : Object.keys((instance.type?.emits as Record<string, unknown>) || {}),
       isSetup: !!(instance as { setupState?: unknown }).setupState,
       parentName: instance.parent ? this.getComponentName(instance.parent) : undefined
     }
@@ -80,7 +88,7 @@ export class ComponentIdentifier {
   }
   
   private static getFileBasedName(instance: ComponentInternalInstance): string | undefined {
-    const file = instance.type.__file
+    const file = instance.type?.__file
     if (!file) return undefined
     
     // Extract component name from file path
