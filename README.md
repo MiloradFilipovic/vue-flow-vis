@@ -2,10 +2,11 @@
 
 A Vue 3 development plugin that provides real-time insights into component rendering behavior. Monitor which components re-render, what triggers the updates, and track reactive dependencies using Vue's built-in debugging hooks ([`onRenderTriggered`](https://vuejs.org/api/composition-api-lifecycle.html#onrendertriggered) and [`onRenderTracked`](https://vuejs.org/api/composition-api-lifecycle.html#onrendertracked)).
 
-![NPM Version](https://img.shields.io/npm/v/vue-flow-vis)
-![Vue](https://img.shields.io/badge/Vue-3.x-brightgreen.svg)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)
-![Development](https://img.shields.io/badge/Environment-Development_Only-orange.svg)
+![NPM Version](https://img.shields.io/npm/v/vue-flow-vis?style=for-the-badge)
+![NPM Downloads](https://img.shields.io/npm/dw/vue-flow-vis?style=for-the-badge&color=orange)
+![Vue](https://img.shields.io/badge/Vue-3.x-brightgreen.svg?style=for-the-badge&color=41B883)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg?style=for-the-badge)
+![Development](https://img.shields.io/badge/Environment-Development_Only-red.svg?style=for-the-badge)
 
 
 
