@@ -4,6 +4,10 @@ A Vue 3 development plugin that provides real-time insights into component rende
 
 ![NPM Version](https://img.shields.io/npm/v/vue-flow-vis?style=for-the-badge&color=red)
 ![NPM Downloads](https://img.shields.io/npm/dw/vue-flow-vis?style=for-the-badge&color=red)
+![Codecov (with branch)](https://img.shields.io/codecov/c/github/MiloradFilipovic/vue-flow-vis/main?style=for-the-badge&color=purple)
+![Static Badge](https://img.shields.io/badge/Dependencies-0-pink?style=for-the-badge)
+
+
 ![Vue](https://img.shields.io/badge/Vue-3.x-brightgreen.svg?style=for-the-badge&color=41B883)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg?style=for-the-badge)
 ![Development](https://img.shields.io/badge/Environment-Development_Only-red.svg?style=for-the-badge&color=yellow&label=ENV)
