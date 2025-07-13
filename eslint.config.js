@@ -12,7 +12,8 @@ export default [
       'node_modules/**',
       'public/**',
       '**/*.config.ts',
-      '**/*.config.js',  
+      '**/*.config.js',
+      'coverage/**',
     ],
   },
   {
