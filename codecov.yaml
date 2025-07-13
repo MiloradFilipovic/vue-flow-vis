@@ -1,0 +1,6 @@
+ignore:
+  - "examples"
+  - "src/test-utils"
+  - "src/constants.ts"
+  - "src/index.ts"
+  - "src/plugin/index.ts"
