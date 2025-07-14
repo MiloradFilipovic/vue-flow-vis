@@ -1,6 +1,6 @@
 {
   "name": "vue-flow-vis",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Real-time monitoring of Vue 3 component renders and reactive dependencies",
   "keywords": [
     "vue",
