@@ -23,6 +23,7 @@ export class ConsoleLogger implements Logger {
   }
   
   error(error: Error, context?: unknown): void {
+    // eslint-disable-next-line no-console
     console.error('[ComponentMonitor Error]', error, context)
   }
   
@@ -52,12 +53,14 @@ export class ConsoleLogger implements Logger {
       if (events.length === 0) continue
       
       // Create a fresh group for this batch
+      // eslint-disable-next-line no-console
       console.groupCollapsed(`%c🔄 ${componentName} (${events.length} events)`, 'font-weight: bold; color: #666')
       
       events.forEach(({ type, data, color }) => {
         this.logSingleEvent(type, data, color)
       })
       
+      // eslint-disable-next-line no-console
       console.groupEnd()
     }
     
@@ -68,6 +71,7 @@ export class ConsoleLogger implements Logger {
   private logSingleEvent(type: string, data: RenderEventData, color: string): void {
     const { componentName, event, componentPath } = data
     
+    // eslint-disable-next-line no-console
     console.log(
       `%c[${type}] ${componentName}`,
       `color: ${color}; font-weight: bold`
@@ -84,9 +88,12 @@ export class ConsoleLogger implements Logger {
           'New Value': (event as { newValue: unknown }).newValue
         })
       }
+      // eslint-disable-next-line no-console
       console.table(tableData)
+      // eslint-disable-next-line no-console
       console.log(' [ORIGINAL EVENT]', event)
     } else {
+      // eslint-disable-next-line no-console
       console.log('Event Details:', {
         path: componentPath,
         event: event,

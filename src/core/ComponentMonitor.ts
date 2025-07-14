@@ -32,8 +32,13 @@ export class ComponentMonitor {
     this.logger = this.options.customLogger!
   }
   
-  shouldMonitorComponent(componentName: string): boolean {
+  shouldMonitorComponent(componentName: string, instance?: import('vue').ComponentInternalInstance): boolean {
     const { includeComponents, excludeComponents } = this.options
+
+    // Check if component is from external library (node_modules)
+    if (instance && this.isExternalComponent(instance)) {
+      return false
+    }
     
     // If include list is specified, only monitor included components
     if (includeComponents.length > 0) {
@@ -42,6 +47,14 @@ export class ComponentMonitor {
     
     // Otherwise, monitor all except excluded
     return !excludeComponents.includes(componentName)
+  }
+
+  private isExternalComponent(instance: import('vue').ComponentInternalInstance): boolean {
+    const file = instance.type?.__file
+    if (!file) return true
+    
+    // Check if the component file path contains node_modules
+    return file.includes('node_modules')
   }
   
   logRenderEvent(type: 'tracked' | 'triggered', data: RenderEventData): void {

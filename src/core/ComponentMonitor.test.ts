@@ -150,6 +150,50 @@ describe('ComponentMonitor', () => {
       expect(monitor.shouldMonitorComponent('OtherComponent')).toBe(false)
       expect(monitor.shouldMonitorComponent('RandomComponent')).toBe(false)
     })
+
+    it('should exclude external components from node_modules', () => {
+      const monitor = new ComponentMonitor()
+      
+      const externalInstance = {
+        type: { 
+          __file: '/path/to/project/node_modules/vue-router/dist/VueRouter.vue' 
+        }
+      } as ComponentInternalInstance
+      
+      const projectInstance = {
+        type: { 
+          __file: '/path/to/project/src/components/MyComponent.vue' 
+        }
+      } as ComponentInternalInstance
+
+      expect(monitor.shouldMonitorComponent('VueRouter', externalInstance)).toBe(false)
+      expect(monitor.shouldMonitorComponent('MyComponent', projectInstance)).toBe(true)
+    })
+
+    it('should not monitor components without __file property', () => {
+      const monitor = new ComponentMonitor()
+      
+      const instanceWithoutFile = {
+        type: {}
+      } as ComponentInternalInstance
+
+      expect(monitor.shouldMonitorComponent('TestComponent', instanceWithoutFile)).toBe(false)
+    })
+
+    it('should include external components when explicitly included', () => {
+      const monitor = new ComponentMonitor({
+        includeComponents: ['VueRouter']
+      })
+      
+      const externalInstance = {
+        type: { 
+          __file: '/path/to/project/node_modules/vue-router/dist/VueRouter.vue' 
+        }
+      } as ComponentInternalInstance
+
+      // External components should still be excluded even if in include list
+      expect(monitor.shouldMonitorComponent('VueRouter', externalInstance)).toBe(false)
+    })
   })
 
   describe('logRenderEvent', () => {

@@ -14,6 +14,7 @@ export const FlowVisPlugin: FlowVisPluginType = {
   install(app: App, options?: FlowVisOptions) {
     // Only enable in development
     if (!__DEV__) {
+      // eslint-disable-next-line no-console
       console.warn('FlowVisPlugin is disabled in production')
       return
     }
@@ -30,7 +31,7 @@ export const FlowVisPlugin: FlowVisPluginType = {
         
         const componentName = ComponentIdentifier.getComponentName(instance)
         
-        if (!monitor.shouldMonitorComponent(componentName)) return
+        if (!monitor.shouldMonitorComponent(componentName, instance)) return
         
         // Lazy path computation - only compute when first render event occurs
         let componentPath: string | undefined
