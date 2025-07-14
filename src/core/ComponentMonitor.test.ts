@@ -13,7 +13,6 @@ vi.mock('../utils/logger', () => ({
   ConsoleLogger: vi.fn().mockImplementation(() => ({
     tracked: vi.fn(),
     triggered: vi.fn(),
-    mounted: vi.fn(),
     error: vi.fn(),
   })),
 }))
@@ -43,7 +42,6 @@ describe('ComponentMonitor', () => {
     mockLogger = {
       tracked: vi.fn(),
       triggered: vi.fn(),
-      mounted: vi.fn(),
       error: vi.fn(),
     }
 
@@ -300,7 +298,6 @@ describe('ComponentMonitor', () => {
           throw new Error('Logger error')
         }),
         triggered: vi.fn(),
-        mounted: vi.fn(),
         error: vi.fn(),
       }
 

@@ -1,5 +1,5 @@
 import { DEFAULT_BATCH_WINDOW } from '../constants'
-import type { Logger, RenderEventData, ComponentMetadata } from '../types'
+import type { Logger, RenderEventData } from '../types'
 
 export class ConsoleLogger implements Logger {
   private batchLogs: boolean
@@ -20,14 +20,6 @@ export class ConsoleLogger implements Logger {
   
   triggered(data: RenderEventData): void {
     this.logEvent('TRIGGERED', data, '#ff6b6b')
-  }
-  
-  mounted(metadata: ComponentMetadata): void {
-    console.log(
-      `%c[MOUNTED] ${metadata.name}`,
-      'color: #4fc3f7; font-weight: bold',
-      metadata
-    )
   }
   
   error(error: Error, context?: unknown): void {

@@ -19,6 +19,7 @@ describe('ConsoleLogger', () => {
   let mockSetTimeout: ReturnType<typeof vi.fn> & { lastCallback?: () => void; lastDelay?: number }
   let mockClearTimeout: ReturnType<typeof vi.fn>
   let mockEventData: RenderEventData
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let mockMetadata: ComponentMetadata
 
   beforeEach(() => {
@@ -125,20 +126,6 @@ describe('ConsoleLogger', () => {
       expect(mockConsole.log).toHaveBeenCalledWith(
         '%c[TRIGGERED] TestComponent',
         'color: #ff6b6b; font-weight: bold'
-      )
-    })
-  })
-
-  describe('mounted method', () => {
-    it('should log mounted event with correct styling', () => {
-      const logger = new ConsoleLogger()
-      
-      logger.mounted(mockMetadata)
-
-      expect(mockConsole.log).toHaveBeenCalledWith(
-        '%c[MOUNTED] TestComponent',
-        'color: #4fc3f7; font-weight: bold',
-        mockMetadata
       )
     })
   })

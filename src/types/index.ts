@@ -76,7 +76,6 @@ export type ComponentMetadata = {
 export type Logger = {
   tracked(data: RenderEventData): void
   triggered(data: RenderEventData): void
-  mounted(metadata: ComponentMetadata): void
   error(error: Error, context?: unknown): void
 }
 
