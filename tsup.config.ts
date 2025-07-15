@@ -1,5 +1,5 @@
 import { defineConfig } from 'tsup'
-import { version } from './package.json'
+import { version, name, author } from './package.json'
 
 export default defineConfig({
   entry: ['src/index.ts'],
@@ -16,8 +16,8 @@ export default defineConfig({
   },
   banner: {
     js: `/**
- * vue-flow-vis v${version}
- * (c) ${new Date().getFullYear()} Milorad Filipović
+ * ${name} v${version}
+ * (c) ${new Date().getFullYear()} ${author}
  * @license MIT
  */`
   },
