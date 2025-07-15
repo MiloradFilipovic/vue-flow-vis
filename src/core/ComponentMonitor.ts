@@ -42,19 +42,117 @@ export class ComponentMonitor {
     
     // If include list is specified, only monitor included components
     if (includeComponents.length > 0) {
-      return includeComponents.includes(componentName)
+      return this.matchesAnyPattern(componentName, includeComponents)
     }
     
     // Otherwise, monitor all except excluded
-    return !excludeComponents.includes(componentName)
+    return !this.matchesAnyPattern(componentName, excludeComponents)
   }
 
+  private normalizePath(filePath: string): string {
+    let normalized = filePath.replace(/\\/g, '/');
+    // Remove trailing slash if present, unless it's just the root '/'
+    if (normalized.length > 1 && normalized.endsWith('/')) {
+      normalized = normalized.substring(0, normalized.length - 1);
+    }
+    return normalized;
+  }
+
+  private matchesPattern(componentName: string, pattern: string): boolean {
+    // If no wildcard, do case-insensitive exact match
+    if (!pattern.includes('*')) {
+      return componentName.toLowerCase() === pattern.toLowerCase();
+    }
+    
+    // Convert wildcard pattern to regex
+    const regexPattern = pattern
+      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // Escape special regex chars
+      .replace(/\\\\?\*/g, '.*'); // Replace \* with .* for wildcard matching
+    
+    const regex = new RegExp(`^${regexPattern}$`, 'i'); // 'i' flag for case-insensitive
+    return regex.test(componentName);
+  }
+
+  private matchesAnyPattern(componentName: string, patterns: string[]): boolean {
+    return patterns.some(pattern => this.matchesPattern(componentName, pattern));
+  }
+
+  // TODO: Check if there is a better way to do this
   private isExternalComponent(instance: import('vue').ComponentInternalInstance): boolean {
     const file = instance.type?.__file
     if (!file) return true
     
+    // Normalize file path for consistent checking
+    const normalizedFile = this.normalizePath(file)
+    
     // Check if the component file path contains node_modules
-    return file.includes('node_modules')
+    if (normalizedFile.includes('node_modules')) return true
+    
+    // Check if file path indicates it's from a different project or external source
+    // This covers CI/CD paths, temp directories, and other external locations
+    const externalPatterns = [
+      '/tmp/',
+      '/temp/',
+      '/home/runner/work/',
+      '/github/workspace/',
+      '/var/folders/',
+      'C:/Users/',
+      'C:/Windows/Temp/'
+    ]
+    
+    if (externalPatterns.some(pattern => normalizedFile.includes(pattern))) {
+      return true
+    }
+    
+    // Check if file is in a dist/build directory of external dependencies
+    const distPatterns = ['/dist/', '/build/', '/lib/', '/es/', '/umd/']
+    if (distPatterns.some(pattern => normalizedFile.includes(pattern))) {
+      // If it contains common external library indicators, it's likely external
+      const hasExternalIndicators = normalizedFile.includes('/packages/') || 
+                                  normalizedFile.includes('/node_modules/') || 
+                                  normalizedFile.match(/\/[^/]+\/dist\//) || 
+                                  normalizedFile.match(/\/[^/]+\/lib\//)
+      if (hasExternalIndicators) {
+        return true
+      }
+    }
+    
+    // Check for absolute paths that don't seem to be in the current project
+    // (heuristic: if it's an absolute path but doesn't contain common project indicators)
+    if (normalizedFile.startsWith('/') && !normalizedFile.includes('/src/') && !normalizedFile.includes('/components/')) {
+      return true
+    }
+    
+    // Check Vue-specific indicators using safe property access
+    // External components often lack HMR IDs in development
+    if (process.env.NODE_ENV === 'development' && instance.type) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+      const hmrId = (instance.type as any).__hmrId
+      if (!hmrId) {
+        // But only if the file suggests it's external (to avoid false positives)
+        if (normalizedFile.includes('/') && !normalizedFile.includes('./') && !normalizedFile.includes('../')) {
+          return true
+        }
+      }
+    }
+    
+    // Check for non-standard scope ID patterns
+    if (instance.type) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+      const scopeId = (instance.type as any).__scopeId
+      if (scopeId && typeof scopeId === 'string' && typeof scopeId.startsWith === 'function' && !scopeId.startsWith('data-v-')) {
+        return true
+      }
+    }
+    
+    // Check if it's a custom element using safe property access
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    const isCE = (instance as any).isCE
+    if (isCE === true) {
+      return true
+    }
+    
+    return false
   }
   
   logRenderEvent(type: 'tracked' | 'triggered', data: RenderEventData): void {

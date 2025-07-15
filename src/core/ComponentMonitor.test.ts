@@ -194,6 +194,124 @@ describe('ComponentMonitor', () => {
       // External components should still be excluded even if in include list
       expect(monitor.shouldMonitorComponent('VueRouter', externalInstance)).toBe(false)
     })
+
+    describe('wildcard pattern matching', () => {
+      it('should support wildcard patterns in excludeComponents', () => {
+        const monitor = new ComponentMonitor({
+          excludeComponents: ['El*', '*Button', '*Component*']
+        })
+
+        expect(monitor.shouldMonitorComponent('ElInput')).toBe(false)
+        expect(monitor.shouldMonitorComponent('ElButton')).toBe(false)
+        expect(monitor.shouldMonitorComponent('SubmitButton')).toBe(false)
+        expect(monitor.shouldMonitorComponent('MyComponentCard')).toBe(false)
+        expect(monitor.shouldMonitorComponent('MyComponent')).toBe(false)
+        expect(monitor.shouldMonitorComponent('ComponentList')).toBe(false)
+        
+        expect(monitor.shouldMonitorComponent('MyCard')).toBe(true)
+        expect(monitor.shouldMonitorComponent('UserForm')).toBe(true)
+      })
+
+      it('should support wildcard patterns in includeComponents', () => {
+        const monitor = new ComponentMonitor({
+          includeComponents: ['My*', '*Form', '*Component*']
+        })
+
+        expect(monitor.shouldMonitorComponent('MyButton')).toBe(true)
+        expect(monitor.shouldMonitorComponent('MyCard')).toBe(true)
+        expect(monitor.shouldMonitorComponent('LoginForm')).toBe(true)
+        expect(monitor.shouldMonitorComponent('UserForm')).toBe(true)
+        expect(monitor.shouldMonitorComponent('MyComponentCard')).toBe(true)
+        expect(monitor.shouldMonitorComponent('ComponentList')).toBe(true)
+        
+        expect(monitor.shouldMonitorComponent('ElInput')).toBe(false)
+        expect(monitor.shouldMonitorComponent('RandomCard')).toBe(false)
+      })
+
+      it('should handle exact matches without wildcards', () => {
+        const monitor = new ComponentMonitor({
+          excludeComponents: ['ExactComponent']
+        })
+
+        expect(monitor.shouldMonitorComponent('ExactComponent')).toBe(false)
+        expect(monitor.shouldMonitorComponent('ExactComponentCard')).toBe(true)
+        expect(monitor.shouldMonitorComponent('MyExactComponent')).toBe(true)
+      })
+
+      it('should handle multiple wildcards in single pattern', () => {
+        const monitor = new ComponentMonitor({
+          excludeComponents: ['*Test*Component*']
+        })
+
+        expect(monitor.shouldMonitorComponent('MyTestComponentCard')).toBe(false)
+        expect(monitor.shouldMonitorComponent('TestComponentList')).toBe(false)
+        expect(monitor.shouldMonitorComponent('UserTestComponent')).toBe(false)
+        expect(monitor.shouldMonitorComponent('TestComponent')).toBe(false)
+        
+        expect(monitor.shouldMonitorComponent('TestCard')).toBe(true)
+        expect(monitor.shouldMonitorComponent('ComponentTest')).toBe(true)
+      })
+
+      it('should be case-insensitive for wildcard patterns', () => {
+        const monitor = new ComponentMonitor({
+          excludeComponents: ['el*', '*button', '*Component*']
+        })
+
+        expect(monitor.shouldMonitorComponent('ElInput')).toBe(false)
+        expect(monitor.shouldMonitorComponent('ELINPUT')).toBe(false)
+        expect(monitor.shouldMonitorComponent('elInput')).toBe(false)
+        expect(monitor.shouldMonitorComponent('SubmitButton')).toBe(false)
+        expect(monitor.shouldMonitorComponent('SUBMITBUTTON')).toBe(false)
+        expect(monitor.shouldMonitorComponent('submitbutton')).toBe(false)
+        expect(monitor.shouldMonitorComponent('MyComponentCard')).toBe(false)
+        expect(monitor.shouldMonitorComponent('MYCOMPONENTCARD')).toBe(false)
+        expect(monitor.shouldMonitorComponent('mycomponentcard')).toBe(false)
+      })
+
+      it('should be case-insensitive for exact matches', () => {
+        const monitor = new ComponentMonitor({
+          excludeComponents: ['ExactComponent']
+        })
+
+        expect(monitor.shouldMonitorComponent('ExactComponent')).toBe(false)
+        expect(monitor.shouldMonitorComponent('EXACTCOMPONENT')).toBe(false)
+        expect(monitor.shouldMonitorComponent('exactcomponent')).toBe(false)
+        expect(monitor.shouldMonitorComponent('ExactCOMPONENT')).toBe(false)
+      })
+
+      it('should handle empty patterns gracefully', () => {
+        const monitor = new ComponentMonitor({
+          excludeComponents: ['', '*', '**']
+        })
+
+        expect(monitor.shouldMonitorComponent('TestComponent')).toBe(false) // '*' matches everything
+        expect(monitor.shouldMonitorComponent('AnyComponent')).toBe(false) // '**' matches everything
+      })
+
+      it('should handle special regex characters in patterns', () => {
+        const monitor = new ComponentMonitor({
+          excludeComponents: ['Component[0-9]', 'Button+', 'Form.vue']
+        })
+
+        expect(monitor.shouldMonitorComponent('Component[0-9]')).toBe(false)
+        expect(monitor.shouldMonitorComponent('Button+')).toBe(false)
+        expect(monitor.shouldMonitorComponent('Form.vue')).toBe(false)
+        expect(monitor.shouldMonitorComponent('Component1')).toBe(true) // Should not match regex pattern
+        expect(monitor.shouldMonitorComponent('ButtonExtra')).toBe(true) // Should not match regex pattern
+      })
+
+      it('should prioritize include patterns over exclude patterns', () => {
+        const monitor = new ComponentMonitor({
+          includeComponents: ['My*'],
+          excludeComponents: ['*Component']
+        })
+
+        expect(monitor.shouldMonitorComponent('MyComponent')).toBe(true) // Include takes priority
+        expect(monitor.shouldMonitorComponent('MyButton')).toBe(true)
+        expect(monitor.shouldMonitorComponent('UserComponent')).toBe(false) // Not in include list
+        expect(monitor.shouldMonitorComponent('RandomCard')).toBe(false) // Not in include list
+      })
+    })
   })
 
   describe('logRenderEvent', () => {
