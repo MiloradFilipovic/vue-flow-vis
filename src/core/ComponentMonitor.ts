@@ -4,8 +4,8 @@ import type {
   RenderEventData, 
   Logger,
 } from '../types'
-import { ConsoleLogger } from '../utils/logger'
 import { ComponentIdentifier } from '../utils/componentIdentifier'
+import { VisualLogger } from '../loggers/VisualLogger'
 
 export class ComponentMonitor {
   public options: Required<FlowVisOptions>
@@ -21,11 +21,7 @@ export class ComponentMonitor {
       batchWindow: options.batchWindow ?? DEFAULT_BATCH_WINDOW,
       onRenderTracked: (): void => {},
       onRenderTriggered: (): void => {},
-      customLogger: new ConsoleLogger({
-        batchLogs: options.batchLogs,
-        useTable: options.logToTable,
-        batchWindow: options.batchWindow ?? DEFAULT_BATCH_WINDOW
-      }),
+      customLogger: new VisualLogger(), // Default to VisualLogger
       ...options
     }
     

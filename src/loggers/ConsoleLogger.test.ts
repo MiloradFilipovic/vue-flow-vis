@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { ConsoleLogger } from './logger'
+import { ConsoleLogger } from './ConsoleLogger'
 import type { RenderEventData, ComponentMetadata } from '../types'
 
 // Mock the constants module
