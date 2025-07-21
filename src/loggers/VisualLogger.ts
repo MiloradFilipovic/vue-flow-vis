@@ -10,6 +10,10 @@ type ComponentGroup = {
 export class VisualLogger implements Logger {
     private loggerPanel: HTMLDivElement;
     private componentGroups: Map<string, ComponentGroup> = new Map();
+    private dragHandle!: HTMLDivElement;
+    private isDragging = false;
+    private startY = 0;
+    private startHeight = 0;
 
     constructor() {
         this.loggerPanel = document.createElement("div");
@@ -26,6 +30,9 @@ export class VisualLogger implements Logger {
         this.loggerPanel.style.borderRadius = "8px";
         this.loggerPanel.style.zIndex = "9999";
         this.loggerPanel.style.fontFamily = "Arial, sans-serif";
+        this.loggerPanel.style.resize = "none";
+        
+        this.createDragHandle();
         const header = document.createElement("div");
         header.style.display = "flex";
         header.style.justifyContent = "space-between";
@@ -50,6 +57,64 @@ export class VisualLogger implements Logger {
         header.appendChild(clearButton);
         this.loggerPanel.appendChild(header);
         document.body.appendChild(this.loggerPanel);
+        this.setupEventListeners();
+    }
+
+    private createDragHandle(): void {
+        this.dragHandle = document.createElement("div");
+        this.dragHandle.style.position = "absolute";
+        this.dragHandle.style.top = "0";
+        this.dragHandle.style.left = "0";
+        this.dragHandle.style.right = "0";
+        this.dragHandle.style.height = "8px";
+        this.dragHandle.style.cursor = "ns-resize";
+        this.dragHandle.style.backgroundColor = "transparent";
+        this.dragHandle.style.borderTop = "2px solid transparent";
+        this.dragHandle.style.transition = "border-color 0.2s ease";
+        
+        this.dragHandle.addEventListener("mouseenter", () => {
+            this.dragHandle.style.borderTopColor = "#007acc";
+        });
+        
+        this.dragHandle.addEventListener("mouseleave", () => {
+            if (!this.isDragging) {
+                this.dragHandle.style.borderTopColor = "transparent";
+            }
+        });
+        
+        this.loggerPanel.appendChild(this.dragHandle);
+    }
+
+    private setupEventListeners(): void {
+        this.dragHandle.addEventListener("mousedown", this.onMouseDown.bind(this));
+        document.addEventListener("mousemove", this.onMouseMove.bind(this));
+        document.addEventListener("mouseup", this.onMouseUp.bind(this));
+    }
+
+    private onMouseDown(event: MouseEvent): void {
+        this.isDragging = true;
+        this.startY = event.clientY;
+        this.startHeight = parseInt(window.getComputedStyle(this.loggerPanel).height, 10);
+        this.dragHandle.style.borderTopColor = "#007acc";
+        event.preventDefault();
+    }
+
+    private onMouseMove(event: MouseEvent): void {
+        if (!this.isDragging) return;
+        
+        const deltaY = this.startY - event.clientY;
+        const newHeight = this.startHeight + deltaY;
+        const minHeight = 150;
+        const maxHeight = window.innerHeight * 0.8;
+        
+        const clampedHeight = Math.max(minHeight, Math.min(maxHeight, newHeight));
+        this.loggerPanel.style.height = `${clampedHeight}px`;
+        this.loggerPanel.style.maxHeight = `${clampedHeight}px`;
+    }
+
+    private onMouseUp(): void {
+        this.isDragging = false;
+        this.dragHandle.style.borderTopColor = "transparent";
     }
 
     private getOrCreateComponentGroup(componentName: string, componentPath?: string): ComponentGroup {
