@@ -5,7 +5,7 @@ import type {
   Logger,
 } from '../types'
 import { ComponentIdentifier } from '../utils/componentIdentifier'
-import { UILogger } from '../loggers/UILogger'
+import { UILogger } from '../loggers/ui/UILogger'
 import { ConsoleLogger } from '../loggers/ConsoleLogger'
 
 // No-op logger for when logging is disabled

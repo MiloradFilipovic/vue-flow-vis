@@ -1,23 +1,14 @@
 /* eslint-disable no-undef */
-import { Logger, RenderEventData } from "../types";
+import { Logger, RenderEventData } from "../../types";
+import { PLUGIN_URL } from "./constants";
+import { createComponentIcon, createExpandIcon, createFlowIcon, createMinimizeIcon, createTrashIcon } from "./icons";
+import { MAIN_AREA_PLACEHOLDER } from "./strings";
 
 type ComponentGroup = {
     sidebarItem: HTMLDivElement;
     events: Array<{type: 'tracked' | 'triggered', timestamp: string}>;
     eventCount: number;
 }
-
-const TRASH_ICON = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-trash2-icon lucide-trash-2\"><path d=\"M10 11v6\"/><path d=\"M14 11v6\"/><path d=\"M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6\"/><path d=\"M3 6h18\"/><path d=\"M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\"/></svg>";
-
-const FLOW_ICON = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-wind-icon lucide-wind\"><path d=\"M12.8 19.6A2 2 0 1 0 14 16H2\"/><path d=\"M17.5 8a2.5 2.5 0 1 1 2 4H2\"/><path d=\"M9.8 4.4A2 2 0 1 1 11 8H2\"/></svg>";
-
-const COMPONENT_ICON = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-component-icon lucide-component\"><path d=\"M15.536 11.293a1 1 0 0 0 0 1.414l2.376 2.377a1 1 0 0 0 1.414 0l2.377-2.377a1 1 0 0 0 0-1.414l-2.377-2.377a1 1 0 0 0-1.414 0z\"/><path d=\"M2.297 11.293a1 1 0 0 0 0 1.414l2.377 2.377a1 1 0 0 0 1.414 0l2.377-2.377a1 1 0 0 0 0-1.414L6.088 8.916a1 1 0 0 0-1.414 0z\"/><path d=\"M8.916 17.912a1 1 0 0 0 0 1.415l2.377 2.376a1 1 0 0 0 1.414 0l2.377-2.376a1 1 0 0 0 0-1.415l-2.377-2.376a1 1 0 0 0-1.414 0z\"/><path d=\"M8.916 4.674a1 1 0 0 0 0 1.414l2.377 2.376a1 1 0 0 0 1.414 0l2.377-2.376a1 1 0 0 0 0-1.414l-2.377-2.377a1 1 0 0 0-1.414 0z\"/></svg>"
-
-const MINIMIZE_ICON = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-minimize-2\"><polyline points=\"4,14 10,14 10,20\"/><polyline points=\"20,10 14,10 14,4\"/><line x1=\"14\" y1=\"10\" x2=\"21\" y2=\"3\"/><line x1=\"3\" y1=\"21\" x2=\"10\" y2=\"14\"/></svg>";
-
-const MAXIMIZE_ICON = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-maximize-2\"><polyline points=\"15,3 21,3 21,9\"/><polyline points=\"9,21 3,21 3,15\"/><line x1=\"21\" y1=\"3\" x2=\"14\" y2=\"10\"/><line x1=\"3\" y1=\"21\" x2=\"10\" y2=\"14\"/></svg>";
-
-const PLUGIN_URL = 'https://github.com/MiloradFilipovic/vue-flow-vis';
 
 export class UILogger implements Logger {
     private loggerPanel: HTMLDivElement;
@@ -146,7 +137,7 @@ export class UILogger implements Logger {
         titleContainer.appendChild(pluginLink);
 
         const icon = document.createElement("span");
-        icon.innerHTML = FLOW_ICON;
+        icon.innerHTML = createFlowIcon(18);
         icon.style.color = "black";
         icon.style.position = "relative";
         icon.style.top = "1px";
@@ -170,7 +161,7 @@ export class UILogger implements Logger {
         buttonContainer.style.alignItems = "center";
 
         const minimizeButton = document.createElement("button");
-        minimizeButton.innerHTML = MINIMIZE_ICON;
+        minimizeButton.innerHTML = createMinimizeIcon(14);
         minimizeButton.style.color = "black";
         minimizeButton.style.border = "none";
         minimizeButton.style.cursor = "pointer";
@@ -181,8 +172,8 @@ export class UILogger implements Logger {
         minimizeButton.onclick = (): void => this.toggleMinimize();
 
         const clearButton = document.createElement("button");
-        clearButton.innerHTML = TRASH_ICON;
-        clearButton.style.color = "black";
+        clearButton.innerHTML = createTrashIcon(14);
+        clearButton.style.color = "#000";
         clearButton.style.border = "none";
         clearButton.style.cursor = "pointer";
         clearButton.style.backgroundColor = "transparent";
@@ -251,12 +242,13 @@ export class UILogger implements Logger {
         placeholder.style.textAlign = "center";
         
         const icon = document.createElement("div");
-        icon.innerHTML = FLOW_ICON;
+        icon.innerHTML = createFlowIcon(32);
         icon.style.color = "#007acc";
-        icon.style.marginBottom = "1em";
+        icon.style.opacity = "0.35";
+        icon.style.marginBottom = "0.5em";
         
         const text = document.createElement("p");
-        text.textContent = "Select a component from the sidebar to view its events";
+        text.textContent = MAIN_AREA_PLACEHOLDER;
         text.style.margin = "0";
         text.style.fontSize = "0.9em";
         
@@ -428,7 +420,7 @@ export class UILogger implements Logger {
         if (!group) return;
 
         const icon = document.createElement("span");
-        icon.innerHTML = COMPONENT_ICON;
+        icon.innerHTML = createComponentIcon(14);
         icon.style.color = "#007acc";
         icon.style.position = "relative";
         icon.style.top = "1px";
@@ -507,7 +499,7 @@ export class UILogger implements Logger {
         header.style.flexShrink = "0";
 
         const icon = document.createElement("span");
-        icon.innerHTML = COMPONENT_ICON;
+        icon.innerHTML = createComponentIcon(14);
         icon.style.color = "#007acc";
         icon.style.marginRight = "0.5em";
 
@@ -618,7 +610,7 @@ export class UILogger implements Logger {
             this.leftResizeHandle.style.display = "block";
             
             const minimizeButton = this.headerElement!.querySelector(".minimize-button") as HTMLButtonElement;
-            minimizeButton.innerHTML = MINIMIZE_ICON;
+            minimizeButton.innerHTML = createMinimizeIcon(14);
             minimizeButton.title = "Minimize panel";
             
             this.isMinimized = false;
@@ -636,7 +628,7 @@ export class UILogger implements Logger {
             this.loggerPanel.style.minHeight = `${headerHeight}px`;
             
             const minimizeButton = this.headerElement!.querySelector(".minimize-button") as HTMLButtonElement;
-            minimizeButton.innerHTML = MAXIMIZE_ICON;
+            minimizeButton.innerHTML = createExpandIcon(14);
             minimizeButton.title = "Restore panel";
             
             this.isMinimized = true;

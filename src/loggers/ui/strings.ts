@@ -1,0 +1,1 @@
+export const MAIN_AREA_PLACEHOLDER = 'Select a component from the sidebar to view its events';
