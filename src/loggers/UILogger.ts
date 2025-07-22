@@ -19,7 +19,7 @@ const MAXIMIZE_ICON = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" he
 
 const PLUGIN_URL = 'https://github.com/MiloradFilipovic/vue-flow-vis';
 
-export class VisualLogger implements Logger {
+export class UILogger implements Logger {
     private loggerPanel: HTMLDivElement;
     private headerElement: HTMLDivElement | undefined;
     private contentContainer: HTMLDivElement | undefined;

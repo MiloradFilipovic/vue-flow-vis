@@ -48,11 +48,11 @@ export type FlowVisOptions = {
   /**
    * Logger type to use for output
    * - 'console': Uses ConsoleLogger for browser console output (default)
-   * - 'visual': Uses VisualLogger for in-page visual panel
+   * - 'ui': Uses UILogger for in-page visual panel
    * - 'none': Disables logging entirely
    * @default 'console'
    */
-  logger?: 'console' | 'visual' | 'none'
+  logger?: 'console' | 'ui' | 'none'
   /**
    * Custom logger for handling logs
    * If provided, this logger will be used instead of the built-in logger option

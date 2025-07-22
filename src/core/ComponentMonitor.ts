@@ -5,7 +5,7 @@ import type {
   Logger,
 } from '../types'
 import { ComponentIdentifier } from '../utils/componentIdentifier'
-import { VisualLogger } from '../loggers/VisualLogger'
+import { UILogger } from '../loggers/UILogger'
 import { ConsoleLogger } from '../loggers/ConsoleLogger'
 
 // No-op logger for when logging is disabled
@@ -59,8 +59,8 @@ export class ComponentMonitor {
           useTable: this.options.logToTable,
           batchWindow: this.options.batchWindow
         })
-      case 'visual':
-        return new VisualLogger()
+      case 'ui':
+        return new UILogger()
       case 'none':
         return new NoOpLogger()
       default:
