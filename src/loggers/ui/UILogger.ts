@@ -6,7 +6,7 @@ import { MAIN_AREA_PLACEHOLDER } from "./strings";
 
 type ComponentGroup = {
     sidebarItem: HTMLDivElement;
-    events: Array<{type: 'tracked' | 'triggered', timestamp: string}>;
+    events: Array<{type: 'tracked' | 'triggered', timestamp: string, eventData: RenderEventData}>;
     eventCount: number;
 }
 
@@ -14,6 +14,7 @@ type SelectedEvent = {
     type: 'tracked' | 'triggered';
     timestamp: string;
     componentName: string;
+    eventData: RenderEventData;
 }
 
 export class UILogger implements Logger {
@@ -458,12 +459,12 @@ export class UILogger implements Logger {
         group.sidebarItem.appendChild(nameContainer);
     }
 
-    private addEventToGroup(componentName: string, eventType: 'tracked' | 'triggered', componentPath?: string): void {
+    private addEventToGroup(componentName: string, eventType: 'tracked' | 'triggered', eventData: RenderEventData, componentPath?: string): void {
         const group = this.getOrCreateComponentGroup(componentName, componentPath);
         group.eventCount++;
         
         const timestamp = new Date().toLocaleTimeString();
-        group.events.push({type: eventType, timestamp});
+        group.events.push({type: eventType, timestamp, eventData});
         
         if (this.selectedComponent === componentName) {
             this.displayComponentEvents(componentName);
@@ -594,7 +595,8 @@ export class UILogger implements Logger {
                     this.selectEvent({
                         type: event.type,
                         timestamp: event.timestamp,
-                        componentName: componentName
+                        componentName: componentName,
+                        eventData: event.eventData
                     });
                 };
 
@@ -636,6 +638,7 @@ export class UILogger implements Logger {
         detailsArea.style.minHeight = "0";
         detailsArea.style.borderLeft = "1px solid #ddd";
         detailsArea.style.paddingLeft = "1em";
+        detailsArea.style.overflow = "auto";
 
         const detailsHeader = document.createElement("h4");
         detailsHeader.textContent = "Event Details";
@@ -646,77 +649,149 @@ export class UILogger implements Logger {
         detailsArea.appendChild(detailsHeader);
 
         if (this.selectedEvent) {
-            const detailsContent = document.createElement("div");
-            detailsContent.style.display = "flex";
-            detailsContent.style.flexDirection = "column";
-            detailsContent.style.gap = "0.5em";
+            const scrollableContent = document.createElement("div");
+            scrollableContent.style.display = "flex";
+            scrollableContent.style.flexDirection = "column";
+            scrollableContent.style.gap = "0.5em";
+            scrollableContent.style.overflow = "auto";
+            scrollableContent.style.paddingRight = "0.5em";
 
-            const eventNameDiv = document.createElement("div");
-            eventNameDiv.style.display = "flex";
-            eventNameDiv.style.flexDirection = "column";
-            eventNameDiv.style.padding = "0.5em";
-            eventNameDiv.style.backgroundColor = "#f9f9f9";
-            eventNameDiv.style.border = "1px solid #ddd";
-            eventNameDiv.style.borderRadius = "4px";
+            // Event Type
+            scrollableContent.appendChild(this.createDetailField(
+                "Event Type", 
+                this.selectedEvent.type === 'tracked' ? 'Render tracked' : 'Render triggered',
+                this.selectedEvent.type === 'tracked' ? "#068261ff" : "#ff9800"
+            ));
 
-            const eventNameLabel = document.createElement("span");
-            eventNameLabel.textContent = "Event Type:";
-            eventNameLabel.style.fontFamily = "monospace";
-            eventNameLabel.style.fontSize = "0.8em";
-            eventNameLabel.style.color = "#666";
-            eventNameLabel.style.fontWeight = "bold";
-            eventNameLabel.style.marginBottom = "0.25em";
+            // Operation Type
+            const operation = this.selectedEvent.eventData.event.type;
+            scrollableContent.appendChild(this.createDetailField("Operation", operation.toUpperCase(), "#007acc"));
 
-            const eventNameValue = document.createElement("span");
-            eventNameValue.textContent = this.selectedEvent.type === 'tracked' ? 'Render tracked' : 'Render triggered';
-            eventNameValue.style.fontFamily = "monospace";
-            eventNameValue.style.fontSize = "0.9em";
-            eventNameValue.style.color = this.selectedEvent.type === 'tracked' ? "#068261ff" : "#ff9800";
-            eventNameValue.style.fontWeight = "bold";
+            // Target Property
+            const key = this.formatKey(this.selectedEvent.eventData.event.key);
+            scrollableContent.appendChild(this.createDetailField("Property", key, "#333"));
 
-            eventNameDiv.appendChild(eventNameLabel);
-            eventNameDiv.appendChild(eventNameValue);
+            // Target Object
+            const target = this.formatTarget(this.selectedEvent.eventData.event.target);
+            scrollableContent.appendChild(this.createDetailField("Target Object", target));
 
-            const timestampDiv = document.createElement("div");
-            timestampDiv.style.display = "flex";
-            timestampDiv.style.flexDirection = "column";
-            timestampDiv.style.padding = "0.5em";
-            timestampDiv.style.backgroundColor = "#f9f9f9";
-            timestampDiv.style.border = "1px solid #ddd";
-            timestampDiv.style.borderRadius = "4px";
+            // For trigger events, show old and new values
+            if (this.selectedEvent.type === 'triggered') {
+                const event = this.selectedEvent.eventData.event;
+                
+                if (event.oldValue !== undefined) {
+                    const oldValue = this.formatValue(event.oldValue);
+                    scrollableContent.appendChild(this.createDetailField("Previous Value", oldValue, "#cc0000"));
+                }
+                
+                if (event.newValue !== undefined) {
+                    const newValue = this.formatValue(event.newValue);
+                    scrollableContent.appendChild(this.createDetailField("New Value", newValue, "#00cc00"));
+                }
+            }
 
-            const timestampLabel = document.createElement("span");
-            timestampLabel.textContent = "Timestamp:";
-            timestampLabel.style.fontFamily = "monospace";
-            timestampLabel.style.fontSize = "0.8em";
-            timestampLabel.style.color = "#666";
-            timestampLabel.style.fontWeight = "bold";
-            timestampLabel.style.marginBottom = "0.25em";
+            // Timestamp at the bottom
+            scrollableContent.appendChild(this.createDetailField("Timestamp", this.selectedEvent.timestamp));
 
-            const timestampValue = document.createElement("span");
-            timestampValue.textContent = this.selectedEvent.timestamp;
-            timestampValue.style.fontFamily = "monospace";
-            timestampValue.style.fontSize = "0.9em";
-            timestampValue.style.color = "#333";
-
-            timestampDiv.appendChild(timestampLabel);
-            timestampDiv.appendChild(timestampValue);
-
-            detailsContent.appendChild(eventNameDiv);
-            detailsContent.appendChild(timestampDiv);
-            detailsArea.appendChild(detailsContent);
+            detailsArea.appendChild(scrollableContent);
         }
 
         return detailsArea;
     }
 
+    private createDetailField(label: string, value: string, valueColor: string = "#333"): HTMLDivElement {
+        const fieldDiv = document.createElement("div");
+        fieldDiv.style.display = "flex";
+        fieldDiv.style.flexDirection = "column";
+        fieldDiv.style.padding = "0.5em";
+        fieldDiv.style.backgroundColor = "#f9f9f9";
+        fieldDiv.style.border = "1px solid #ddd";
+        fieldDiv.style.borderRadius = "4px";
+
+        const labelSpan = document.createElement("span");
+        labelSpan.textContent = label + ":";
+        labelSpan.style.fontFamily = "monospace";
+        labelSpan.style.fontSize = "0.8em";
+        labelSpan.style.color = "#666";
+        labelSpan.style.fontWeight = "bold";
+        labelSpan.style.marginBottom = "0.25em";
+
+        const valueSpan = document.createElement("span");
+        valueSpan.textContent = value;
+        valueSpan.style.fontFamily = "monospace";
+        valueSpan.style.fontSize = "0.9em";
+        valueSpan.style.color = valueColor;
+        valueSpan.style.wordBreak = "break-word";
+        valueSpan.style.whiteSpace = "pre-wrap";
+
+        fieldDiv.appendChild(labelSpan);
+        fieldDiv.appendChild(valueSpan);
+        
+        return fieldDiv;
+    }
+
+    private formatKey(key: unknown): string {
+        if (typeof key === 'symbol') {
+            return key.toString();
+        }
+        if (typeof key === 'string') {
+            return `"${key}"`;
+        }
+        return String(key);
+    }
+
+    private formatTarget(target: unknown): string {
+        if (!target) return 'undefined';
+        
+        try {
+            if (typeof target === 'object' && target !== null && 'constructor' in target) {
+                const constructor = (target as { constructor?: { name?: string } }).constructor;
+                if (constructor && typeof constructor.name === 'string') {
+                    return constructor.name;
+                }
+            }
+            return Object.prototype.toString.call(target).slice(8, -1);
+        } catch {
+            return 'Unknown Object';
+        }
+    }
+
+    private formatValue(value: unknown): string {
+        if (value === null) return 'null';
+        if (value === undefined) return 'undefined';
+        
+        try {
+            if (typeof value === 'string') {
+                return `"${value}"`;
+            }
+            if (typeof value === 'object' && value !== null) {
+                if (Array.isArray(value)) {
+                    return `Array(${value.length})`;
+                }
+                return JSON.stringify(value, null, 2);
+            }
+            if (typeof value === 'number' || typeof value === 'boolean') {
+                return String(value);
+            }
+            if (typeof value === 'function') {
+                return '[Function]';
+            }
+            if (typeof value === 'symbol') {
+                return value.toString();
+            }
+            return '[Object]';
+        } catch {
+            return '[Object]';
+        }
+    }
+
 
     tracked(data: RenderEventData): void {
-        this.addEventToGroup(data.componentName, 'tracked', data.componentPath);
+        this.addEventToGroup(data.componentName, 'tracked', data, data.componentPath);
     }
 
     triggered(data: RenderEventData): void {
-        this.addEventToGroup(data.componentName, "triggered", data.componentPath);
+        this.addEventToGroup(data.componentName, "triggered", data, data.componentPath);
     }
 
     error(error: Error, _context?: unknown): void {
