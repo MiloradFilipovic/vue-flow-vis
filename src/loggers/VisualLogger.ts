@@ -2,8 +2,8 @@
 import { Logger, RenderEventData } from "../types";
 
 type ComponentGroup = {
-    header: HTMLDivElement;
-    content: HTMLDivElement;
+    sidebarItem: HTMLDivElement;
+    events: Array<{type: 'tracked' | 'triggered', timestamp: string}>;
     eventCount: number;
 }
 
@@ -19,7 +19,10 @@ export class VisualLogger implements Logger {
     private loggerPanel: HTMLDivElement;
     private headerElement: HTMLDivElement | undefined;
     private contentContainer: HTMLDivElement | undefined;
+    private sidebar: HTMLDivElement | undefined;
+    private mainArea: HTMLDivElement | undefined;
     private componentGroups: Map<string, ComponentGroup> = new Map();
+    private selectedComponent: string | null = null;
     private dragHandle!: HTMLDivElement;
     private isDragging = false;
     private startY = 0;
@@ -32,7 +35,7 @@ export class VisualLogger implements Logger {
         this.loggerPanel.style.right = "1em";
         this.loggerPanel.style.width = "calc(100vw - 4em)";
         this.loggerPanel.style.maxHeight = "250px";
-        this.loggerPanel.style.minHeight = "150px";
+        this.loggerPanel.style.minHeight = "250px";
         this.loggerPanel.style.display = "flex";
         this.loggerPanel.style.flexDirection = "column";
         this.loggerPanel.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
@@ -135,11 +138,67 @@ export class VisualLogger implements Logger {
 
     private createContentContainer(): void {
         this.contentContainer = document.createElement("div");
-        this.contentContainer.style.overflow = "auto";
         this.contentContainer.style.flex = "1";
         this.contentContainer.style.display = "flex";
-        this.contentContainer.style.flexDirection = "column";
+        this.contentContainer.style.flexDirection = "row";
+        this.contentContainer.style.overflow = "hidden";
+        
+        this.createSidebar();
+        this.createMainArea();
+        
         this.loggerPanel.appendChild(this.contentContainer);
+    }
+
+    private createSidebar(): void {
+        this.sidebar = document.createElement("div");
+        this.sidebar.style.width = "200px";
+        this.sidebar.style.minWidth = "200px";
+        this.sidebar.style.borderRight = "1px solid #ddd";
+        this.sidebar.style.overflow = "auto";
+        this.sidebar.style.backgroundColor = "#f9f9f9";
+        this.contentContainer!.appendChild(this.sidebar);
+    }
+
+    private createMainArea(): void {
+        this.mainArea = document.createElement("div");
+        this.mainArea.style.flex = "1";
+        this.mainArea.style.overflow = "hidden";
+        this.mainArea.style.padding = "1em";
+        this.mainArea.style.display = "flex";
+        this.mainArea.style.flexDirection = "column";
+        
+        this.showPlaceholderText();
+        
+        this.contentContainer!.appendChild(this.mainArea);
+    }
+
+    private showPlaceholderText(): void {
+        if (!this.mainArea) return;
+        
+        this.mainArea.innerHTML = "";
+        const placeholder = document.createElement("div");
+        placeholder.style.display = "flex";
+        placeholder.style.flexDirection = "column";
+        placeholder.style.alignItems = "center";
+        placeholder.style.justifyContent = "center";
+        placeholder.style.height = "100%";
+        placeholder.style.color = "#666";
+        placeholder.style.fontFamily = "Arial, sans-serif";
+        placeholder.style.textAlign = "center";
+        
+        const icon = document.createElement("div");
+        icon.innerHTML = FLOW_ICON;
+        icon.style.color = "#007acc";
+        icon.style.marginBottom = "1em";
+        
+        const text = document.createElement("p");
+        text.textContent = "Select a component from the sidebar to view its events";
+        text.style.margin = "0";
+        text.style.fontSize = "0.9em";
+        
+        placeholder.appendChild(icon);
+        placeholder.appendChild(text);
+        this.mainArea.appendChild(placeholder);
     }
 
     private setupEventListeners(): void {
@@ -175,10 +234,10 @@ export class VisualLogger implements Logger {
     }
 
     private getOrCreateComponentGroup(componentName: string, componentPath?: string): ComponentGroup {
-        if (!this.contentContainer) {
+        if (!this.sidebar) {
             return {
-                header: document.createElement("div"),
-                content: document.createElement("div"),
+                sidebarItem: document.createElement("div"),
+                events: [],
                 eventCount: 0
             };
         }
@@ -187,63 +246,80 @@ export class VisualLogger implements Logger {
             return this.componentGroups.get(componentName)!;
         }
 
-        const groupDiv = document.createElement("div");
-        groupDiv.style.borderBottom = "1px solid #ddd";
-        groupDiv.style.fontFamily = "monospace";
+        const sidebarItem = document.createElement("div");
+        sidebarItem.style.display = "flex";
+        sidebarItem.style.padding = "0.75em";
+        sidebarItem.style.cursor = "pointer";
+        sidebarItem.style.gap = "0.5em";
+        sidebarItem.style.borderBottom = "1px solid #ddd";
+        sidebarItem.style.userSelect = "none";
+        sidebarItem.style.fontFamily = "monospace";
+        sidebarItem.style.fontSize = "0.9em";
+        sidebarItem.style.transition = "background-color 0.2s";
 
-        const header = document.createElement("div");
-        header.style.display = "flex";
-        header.style.alignItems = "center";
-        header.style.padding = "0.5em 0.8em";
-        header.style.cursor = "pointer";
-        header.style.borderBottom = "1px solid #ddd";
-        header.style.userSelect = "none";
-
-        const content = document.createElement("div");
-        content.style.padding = "0.8em";
-        content.style.maxHeight = "150px";
-        content.style.overflow = "auto";
-        content.style.display = "none";
-
-        header.onclick = (): void => {
-            content.style.display = content.style.display === "none" ? "block" : "none";
+        sidebarItem.onmouseenter = (): void => {
+            if (this.selectedComponent !== componentName) {
+                sidebarItem.style.backgroundColor = "#e9e9e9";
+            }
         };
 
-        groupDiv.appendChild(header);
-        groupDiv.appendChild(content);
-        this.contentContainer.appendChild(groupDiv);
+        sidebarItem.onmouseleave = (): void => {
+            if (this.selectedComponent !== componentName) {
+                sidebarItem.style.backgroundColor = "transparent";
+            }
+        };
+
+        sidebarItem.onclick = (): void => {
+            this.selectComponent(componentName);
+        };
+
+        this.sidebar.appendChild(sidebarItem);
 
         const group: ComponentGroup = {
-            header,
-            content,
+            sidebarItem,
+            events: [],
             eventCount: 0
         };
 
         this.componentGroups.set(componentName, group);
-        this.updateGroupHeader(componentName, componentPath);
+        this.updateSidebarItem(componentName, componentPath);
 
         return group;
     }
 
-    private updateGroupHeader(componentName: string, _componentPath?: string): void {
+    private updateSidebarItem(componentName: string, _componentPath?: string): void {
         const group = this.componentGroups.get(componentName);
         if (!group) return;
 
         const icon = document.createElement("span");
-        icon.style.marginRight = "0.5em";
         icon.innerHTML = COMPONENT_ICON;
         icon.style.color = "#007acc";
         icon.style.position = "relative";
-        icon.style.top = "2px";
+        icon.style.top = "1px";
+        icon.style.flexShrink = "0";
 
-        const textContent = document.createElement("span");
-        textContent.textContent = `${componentName} (${group.eventCount} events)`;
+        const nameContainer = document.createElement("div");
+        nameContainer.style.flex = "1";
+        nameContainer.style.overflow = "hidden";
 
-        group.header.innerHTML = ""; // Clear previous content
-        group.header.appendChild(icon);
-        group.header.appendChild(textContent);
-        group.header.style.display = "flex";
-        group.header.style.alignItems = "center";
+        const nameSpan = document.createElement("div");
+        nameSpan.textContent = componentName;
+        nameSpan.style.fontWeight = "bold";
+        nameSpan.style.whiteSpace = "nowrap";
+        nameSpan.style.overflow = "hidden";
+        nameSpan.style.textOverflow = "ellipsis";
+
+        const countSpan = document.createElement("div");
+        countSpan.textContent = `${group.eventCount} events`;
+        countSpan.style.fontSize = "0.8em";
+        countSpan.style.color = "#666";
+
+        nameContainer.appendChild(nameSpan);
+        nameContainer.appendChild(countSpan);
+
+        group.sidebarItem.innerHTML = "";
+        group.sidebarItem.appendChild(icon);
+        group.sidebarItem.appendChild(nameContainer);
     }
 
     private addEventToGroup(componentName: string, eventType: 'tracked' | 'triggered', componentPath?: string): void {
@@ -251,31 +327,114 @@ export class VisualLogger implements Logger {
         group.eventCount++;
         
         const timestamp = new Date().toLocaleTimeString();
-        const eventDiv = document.createElement("div");
-        eventDiv.style.display = "flex";
-        eventDiv.style.justifyContent = "space-between";
-        eventDiv.style.padding = "0.2em";
-        eventDiv.style.fontSize = "0.9em";
-        eventDiv.style.marginBottom = "0.25em";
-        eventDiv.style.borderBottom = "1px solid #eee";
-
-        if (eventType === 'tracked') {
-            const eventSpan = document.createElement("span");
-            eventSpan.textContent = 'Render tracked';
-            eventSpan.style.color = "#068261ff";
-            eventSpan.style.fontWeight = "bold";
-            eventDiv.appendChild(eventSpan);
-        } else if (eventType === 'triggered') {
-            const eventSpan = document.createElement("span");
-            eventSpan.textContent = 'Render triggered';
-            eventSpan.style.color = "#ff9800"; 
-            eventSpan.style.fontWeight = "bold";
-            eventDiv.appendChild(eventSpan);
-        }
-        eventDiv.appendChild(document.createTextNode(`${timestamp}`));
+        group.events.push({type: eventType, timestamp});
         
-        group.content.appendChild(eventDiv);
-        this.updateGroupHeader(componentName, componentPath);
+        if (this.selectedComponent === componentName) {
+            this.displayComponentEvents(componentName);
+        }
+        
+        this.updateSidebarItem(componentName, componentPath);
+    }
+
+    private selectComponent(componentName: string): void {
+        if (this.selectedComponent) {
+            const prevGroup = this.componentGroups.get(this.selectedComponent);
+            if (prevGroup) {
+                prevGroup.sidebarItem.style.backgroundColor = "transparent";
+                prevGroup.sidebarItem.style.fontWeight = "normal";
+            }
+        }
+
+        this.selectedComponent = componentName;
+        const currentGroup = this.componentGroups.get(componentName);
+        if (currentGroup) {
+            currentGroup.sidebarItem.style.backgroundColor = "#e9e9e9";
+        }
+
+        this.displayComponentEvents(componentName);
+    }
+
+    private displayComponentEvents(componentName: string): void {
+        if (!this.mainArea) return;
+
+        const group = this.componentGroups.get(componentName);
+        if (!group) return;
+
+        this.mainArea.innerHTML = "";
+
+        const header = document.createElement("div");
+        header.style.display = "flex";
+        header.style.alignItems = "center";
+        header.style.marginBottom = "1em";
+        header.style.paddingBottom = "0.5em";
+        header.style.borderBottom = "2px solid #007acc";
+        header.style.flexShrink = "0";
+
+        const icon = document.createElement("span");
+        icon.innerHTML = COMPONENT_ICON;
+        icon.style.color = "#007acc";
+        icon.style.marginRight = "0.5em";
+
+        const title = document.createElement("h3");
+        title.textContent = `${componentName} Events`;
+        title.style.margin = "0";
+        title.style.fontFamily = "monospace";
+        title.style.fontSize = "1.1em";
+        title.style.position = "relative";
+        title.style.top = "-1px";
+
+        header.appendChild(icon);
+        header.appendChild(title);
+        this.mainArea.appendChild(header);
+
+        const scrollableContainer = document.createElement("div");
+        scrollableContainer.style.flex = "1";
+        scrollableContainer.style.overflow = "auto";
+        scrollableContainer.style.minHeight = "0";
+
+        if (group.events.length === 0) {
+            const noEvents = document.createElement("p");
+            noEvents.textContent = "No events recorded yet";
+            noEvents.style.color = "#666";
+            noEvents.style.fontStyle = "italic";
+            noEvents.style.margin = "0";
+            scrollableContainer.appendChild(noEvents);
+        } else {
+            const eventsContainer = document.createElement("div");
+            eventsContainer.style.display = "flex";
+            eventsContainer.style.flexDirection = "column";
+            eventsContainer.style.gap = "0.5em";
+
+            group.events.forEach((event) => {
+                const eventDiv = document.createElement("div");
+                eventDiv.style.display = "flex";
+                eventDiv.style.justifyContent = "space-between";
+                eventDiv.style.alignItems = "center";
+                eventDiv.style.padding = "0.5em";
+                eventDiv.style.backgroundColor = "#f9f9f9";
+                eventDiv.style.border = "1px solid #ddd";
+                eventDiv.style.borderRadius = "4px";
+                eventDiv.style.fontFamily = "monospace";
+                eventDiv.style.fontSize = "0.9em";
+
+                const eventSpan = document.createElement("span");
+                eventSpan.textContent = event.type === 'tracked' ? 'Render tracked' : 'Render triggered';
+                eventSpan.style.color = event.type === 'tracked' ? "#068261ff" : "#ff9800";
+                eventSpan.style.fontWeight = "bold";
+
+                const timestampSpan = document.createElement("span");
+                timestampSpan.textContent = event.timestamp;
+                timestampSpan.style.color = "#666";
+
+                eventDiv.appendChild(eventSpan);
+                eventDiv.appendChild(timestampSpan);
+                eventsContainer.appendChild(eventDiv);
+            });
+
+            scrollableContainer.appendChild(eventsContainer);
+        }
+
+        this.mainArea.appendChild(scrollableContainer);
     }
 
     tracked(data: RenderEventData): void {
@@ -287,7 +446,7 @@ export class VisualLogger implements Logger {
     }
 
     error(error: Error, _context?: unknown): void {
-        if (!this.contentContainer) {
+        if (!this.mainArea) {
             return;
         }
 
@@ -298,18 +457,27 @@ export class VisualLogger implements Logger {
         errorDiv.style.border = "1px solid red";
         errorDiv.style.borderRadius = "4px";
         errorDiv.style.backgroundColor = "#ffeaea";
+        errorDiv.style.fontFamily = "monospace";
+        errorDiv.style.fontSize = "0.9em";
         
         const timestamp = new Date().toLocaleTimeString();
         errorDiv.textContent = `[${timestamp}] [Error] ${error.message}`;
         
-        this.contentContainer.appendChild(errorDiv);
+        if (this.selectedComponent) {
+            this.mainArea.appendChild(errorDiv);
+        } else {
+            this.mainArea.innerHTML = "";
+            this.mainArea.appendChild(errorDiv);
+        }
     }
 
     private clear(): void {
-        if (!this.contentContainer) {
+        if (!this.sidebar || !this.mainArea) {
             return;
         }
         this.componentGroups.clear();
-        this.contentContainer.innerHTML = "";
+        this.selectedComponent = null;
+        this.sidebar.innerHTML = "";
+        this.showPlaceholderText();
     }
 }
