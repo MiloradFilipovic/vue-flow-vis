@@ -66,8 +66,42 @@ type FlowVisOptions = {
   batchWindow?: number          // Delay in ms before flushing batched logs (default: 500)
   onRenderTracked?: (data: RenderEventData) => void   // Custom callback for tracked events
   onRenderTriggered?: (data: RenderEventData) => void // Custom callback for triggered events
-  customLogger?: Logger         // Custom logger implementation
+  logger?: 'console' | 'visual' | 'none'  // Logger type (default: 'console')
+  customLogger?: Logger         // Custom logger implementation (overrides logger option)
 }
+```
+
+### Logger Options
+
+The plugin provides three built-in logger types:
+
+**Console Logger (default)**
+```typescript
+app.use(FlowVisPlugin, { logger: 'console' })
+```
+Outputs to browser console with optional batching and table formatting.
+
+**Visual Logger**
+```typescript
+app.use(FlowVisPlugin, { logger: 'visual' })
+```
+Shows an in-page resizable panel with component event details.
+
+**No Logger**
+```typescript
+app.use(FlowVisPlugin, { logger: 'none' })
+```
+Disables logging entirely while keeping callbacks active.
+
+**Custom Logger**
+```typescript
+class MyLogger implements Logger {
+  tracked(data: RenderEventData): void { /* custom logic */ }
+  triggered(data: RenderEventData): void { /* custom logic */ }
+  error(error: Error, context?: unknown): void { /* custom logic */ }
+}
+
+app.use(FlowVisPlugin, { customLogger: new MyLogger() })
 ```
 
 ## Development setup

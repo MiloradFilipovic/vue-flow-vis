@@ -6,9 +6,25 @@ import type {
 } from '../types'
 import { ComponentIdentifier } from '../utils/componentIdentifier'
 import { VisualLogger } from '../loggers/VisualLogger'
+import { ConsoleLogger } from '../loggers/ConsoleLogger'
+
+// No-op logger for when logging is disabled
+class NoOpLogger implements Logger {
+  tracked(_data: RenderEventData): void {
+    // Do nothing
+  }
+  
+  triggered(_data: RenderEventData): void {
+    // Do nothing
+  }
+  
+  error(_error: Error, _context?: unknown): void {
+    // Do nothing
+  }
+}
 
 export class ComponentMonitor {
-  public options: Required<FlowVisOptions>
+  public options: Required<Omit<FlowVisOptions, 'customLogger'>> & { customLogger?: Logger }
   private logger: Logger
   
   constructor(options: FlowVisOptions = {}) {
@@ -21,11 +37,39 @@ export class ComponentMonitor {
       batchWindow: options.batchWindow ?? DEFAULT_BATCH_WINDOW,
       onRenderTracked: (): void => {},
       onRenderTriggered: (): void => {},
-      customLogger: new VisualLogger(), // Default to VisualLogger
+      logger: 'console',
+      customLogger: undefined,
       ...options
     }
     
-    this.logger = this.options.customLogger!
+    this.logger = this.createLogger()
+  }
+
+  private createLogger(): Logger {
+    // Custom logger takes precedence
+    if (this.options.customLogger) {
+      return this.options.customLogger
+    }
+
+    // Create logger based on type selection
+    switch (this.options.logger) {
+      case 'console':
+        return new ConsoleLogger({
+          batchLogs: this.options.batchLogs,
+          useTable: this.options.logToTable,
+          batchWindow: this.options.batchWindow
+        })
+      case 'visual':
+        return new VisualLogger()
+      case 'none':
+        return new NoOpLogger()
+      default:
+        return new ConsoleLogger({
+          batchLogs: this.options.batchLogs,
+          useTable: this.options.logToTable,
+          batchWindow: this.options.batchWindow
+        })
+    }
   }
   
   shouldMonitorComponent(componentName: string, instance?: import('vue').ComponentInternalInstance): boolean {
