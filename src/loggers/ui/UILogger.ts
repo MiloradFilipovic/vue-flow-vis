@@ -604,7 +604,7 @@ export class UILogger implements Logger {
             // Restore panel
             this.loggerPanel.style.height = `${this.savedHeight}px`;
             this.loggerPanel.style.maxHeight = `${this.savedHeight}px`;
-            this.loggerPanel.style.minHeight = `${this.savedHeight}px`;
+            this.loggerPanel.style.minHeight = "150px";
             this.contentContainer!.style.display = "flex";
             this.dragHandle.style.display = "block";
             this.leftResizeHandle.style.display = "block";
