@@ -33,7 +33,8 @@ export class VisualLogger implements Logger {
         this.loggerPanel.style.width = "calc(100vw - 4em)";
         this.loggerPanel.style.maxHeight = "250px";
         this.loggerPanel.style.minHeight = "150px";
-        this.loggerPanel.style.overflow = "auto";
+        this.loggerPanel.style.display = "flex";
+        this.loggerPanel.style.flexDirection = "column";
         this.loggerPanel.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
         this.loggerPanel.style.border = "1px solid #ccc";
         this.loggerPanel.style.zIndex = "9999";
