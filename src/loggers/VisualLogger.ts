@@ -31,13 +31,18 @@ export class VisualLogger implements Logger {
     private isSidebarResizing = false;
     private startX = 0;
     private startSidebarWidth = 0;
+    private leftResizeHandle!: HTMLDivElement;
+    private isLeftResizing = false;
+    private startLeftX = 0;
+    private startPanelWidth = 0;
 
     constructor() {
         this.loggerPanel = document.createElement("div");
         this.loggerPanel.style.position = "fixed";
         this.loggerPanel.style.bottom = "1em";
         this.loggerPanel.style.right = "1em";
-        this.loggerPanel.style.width = "calc(100vw - 4em)";
+        this.loggerPanel.style.width = "95vw";
+        this.loggerPanel.style.maxWidth = "95vw";
         this.loggerPanel.style.maxHeight = "250px";
         this.loggerPanel.style.minHeight = "250px";
         this.loggerPanel.style.display = "flex";
@@ -49,6 +54,7 @@ export class VisualLogger implements Logger {
         this.loggerPanel.style.resize = "none";
         
         this.createDragHandle();
+        this.createLeftResizeHandle();
         this.createHeader();
         this.createContentContainer();
         this.createSidebarResizeHandle();
@@ -80,6 +86,32 @@ export class VisualLogger implements Logger {
         });
         
         this.loggerPanel.appendChild(this.dragHandle);
+    }
+
+    private createLeftResizeHandle(): void {
+        this.leftResizeHandle = document.createElement("div");
+        this.leftResizeHandle.style.position = "absolute";
+        this.leftResizeHandle.style.top = "0";
+        this.leftResizeHandle.style.left = "0";
+        this.leftResizeHandle.style.bottom = "0";
+        this.leftResizeHandle.style.width = "8px";
+        this.leftResizeHandle.style.cursor = "ew-resize";
+        this.leftResizeHandle.style.backgroundColor = "transparent";
+        this.leftResizeHandle.style.borderLeft = "2px solid transparent";
+        this.leftResizeHandle.style.transition = "border-color 0.2s ease";
+        this.leftResizeHandle.style.zIndex = "2";
+        
+        this.leftResizeHandle.addEventListener("mouseenter", () => {
+            this.leftResizeHandle.style.borderLeftColor = "#007acc";
+        });
+        
+        this.leftResizeHandle.addEventListener("mouseleave", () => {
+            if (!this.isLeftResizing) {
+                this.leftResizeHandle.style.borderLeftColor = "transparent";
+            }
+        });
+        
+        this.loggerPanel.appendChild(this.leftResizeHandle);
     }
 
     private createHeader(): void {
@@ -236,6 +268,7 @@ export class VisualLogger implements Logger {
 
     private setupEventListeners(): void {
         this.dragHandle.addEventListener("mousedown", this.onMouseDown.bind(this));
+        this.leftResizeHandle.addEventListener("mousedown", this.onLeftMouseDown.bind(this));
         this.sidebarResizeHandle.addEventListener("mousedown", this.onSidebarMouseDown.bind(this));
         document.addEventListener("mousemove", this.onMouseMove.bind(this));
         document.addEventListener("mouseup", this.onMouseUp.bind(this));
@@ -247,6 +280,15 @@ export class VisualLogger implements Logger {
         this.startHeight = parseInt(window.getComputedStyle(this.loggerPanel).height, 10);
         this.dragHandle.style.borderTopColor = "#007acc";
         event.preventDefault();
+    }
+
+    private onLeftMouseDown(event: MouseEvent): void {
+        this.isLeftResizing = true;
+        this.startLeftX = event.clientX;
+        this.startPanelWidth = this.loggerPanel.offsetWidth;
+        this.leftResizeHandle.style.borderLeftColor = "#007acc";
+        event.preventDefault();
+        event.stopPropagation();
     }
 
     private onSidebarMouseDown(event: MouseEvent): void {
@@ -270,6 +312,16 @@ export class VisualLogger implements Logger {
             this.loggerPanel.style.maxHeight = `${clampedHeight}px`;
         }
         
+        if (this.isLeftResizing) {
+            const deltaX = this.startLeftX - event.clientX;
+            const newWidth = this.startPanelWidth + deltaX;
+            const minWidth = 400;
+            const maxWidth = window.innerWidth * 0.95;
+            
+            const clampedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+            this.loggerPanel.style.width = `${clampedWidth}px`;
+        }
+        
         if (this.isSidebarResizing) {
             const deltaX = event.clientX - this.startX;
             const newWidth = this.startSidebarWidth + deltaX;
@@ -284,6 +336,9 @@ export class VisualLogger implements Logger {
     private onMouseUp(): void {
         this.isDragging = false;
         this.dragHandle.style.borderTopColor = "transparent";
+        
+        this.isLeftResizing = false;
+        this.leftResizeHandle.style.borderLeftColor = "transparent";
         
         this.isSidebarResizing = false;
         this.sidebarResizeHandle.style.borderRightColor = "transparent";
