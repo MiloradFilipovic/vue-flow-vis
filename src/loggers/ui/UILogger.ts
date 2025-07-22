@@ -8,6 +8,7 @@ type ComponentGroup = {
     sidebarItem: HTMLDivElement;
     events: Array<{type: 'tracked' | 'triggered', timestamp: string, eventData: RenderEventData}>;
     eventCount: number;
+    componentPath?: string;
 }
 
 type SelectedEvent = {
@@ -15,6 +16,7 @@ type SelectedEvent = {
     timestamp: string;
     componentName: string;
     eventData: RenderEventData;
+    eventIndex: number;
 }
 
 export class UILogger implements Logger {
@@ -48,8 +50,8 @@ export class UILogger implements Logger {
         this.loggerPanel.style.right = "1em";
         this.loggerPanel.style.width = "95vw";
         this.loggerPanel.style.maxWidth = "95vw";
-        this.loggerPanel.style.maxHeight = "250px";
-        this.loggerPanel.style.minHeight = "250px";
+        this.loggerPanel.style.maxHeight = "450px";
+        this.loggerPanel.style.minHeight = "450px";
         this.loggerPanel.style.display = "flex";
         this.loggerPanel.style.flexDirection = "column";
         this.loggerPanel.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
@@ -415,7 +417,8 @@ export class UILogger implements Logger {
         const group: ComponentGroup = {
             sidebarItem,
             events: [],
-            eventCount: 0
+            eventCount: 0,
+            componentPath
         };
 
         this.componentGroups.set(componentName, group);
@@ -461,6 +464,12 @@ export class UILogger implements Logger {
 
     private addEventToGroup(componentName: string, eventType: 'tracked' | 'triggered', eventData: RenderEventData, componentPath?: string): void {
         const group = this.getOrCreateComponentGroup(componentName, componentPath);
+        
+        // Update componentPath if it's provided and not already set
+        if (componentPath && !group.componentPath) {
+            group.componentPath = componentPath;
+        }
+        
         group.eventCount++;
         
         const timestamp = new Date().toLocaleTimeString();
@@ -505,7 +514,7 @@ export class UILogger implements Logger {
         header.style.alignItems = "center";
         header.style.marginBottom = "1em";
         header.style.paddingBottom = "0.5em";
-        header.style.borderBottom = "2px solid #007acc";
+        header.style.borderBottom = "1px solid #ddd";
         header.style.flexShrink = "0";
 
         const icon = document.createElement("span");
@@ -514,10 +523,11 @@ export class UILogger implements Logger {
         icon.style.marginRight = "0.5em";
 
         const title = document.createElement("h3");
-        title.textContent = `${componentName} Events`;
+        const displayText = group.componentPath || componentName;
+        title.textContent = `${displayText}`;
         title.style.margin = "0";
         title.style.fontFamily = "monospace";
-        title.style.fontSize = "1.1em";
+        title.style.fontSize = "1em";
         title.style.position = "relative";
         title.style.top = "-1px";
 
@@ -567,11 +577,10 @@ export class UILogger implements Logger {
             eventsContainer.style.width = "100%";
             eventsContainer.style.boxSizing = "border-box";
 
-            group.events.forEach((event) => {
+            group.events.forEach((event, eventIndex) => {
                 const eventDiv = document.createElement("div");
                 eventDiv.style.display = "block";
                 eventDiv.style.padding = "0.5em";
-                eventDiv.style.backgroundColor = "#f9f9f9";
                 eventDiv.style.border = "1px solid #ddd";
                 eventDiv.style.borderRadius = "4px";
                 eventDiv.style.fontFamily = "monospace";
@@ -583,12 +592,24 @@ export class UILogger implements Logger {
                 eventDiv.style.marginLeft = "0.5em";
                 eventDiv.style.marginRight = "0.5em";
 
+                // Check if this event is selected and set initial background
+                const isSelected = this.selectedEvent && 
+                    this.selectedEvent.eventIndex === eventIndex && 
+                    this.selectedEvent.componentName === componentName;
+
+                eventDiv.style.backgroundColor = isSelected ? "#e9e9e9" : "#f9f9f9";
+
                 eventDiv.onmouseenter = (): void => {
                     eventDiv.style.backgroundColor = "#e9e9e9";
                 };
 
                 eventDiv.onmouseleave = (): void => {
-                    eventDiv.style.backgroundColor = "#f9f9f9";
+                    // Recalculate selection state on mouse leave
+                    const currentlySelected = this.selectedEvent && 
+                        this.selectedEvent.eventIndex === eventIndex && 
+                        this.selectedEvent.componentName === componentName;
+                    
+                    eventDiv.style.backgroundColor = currentlySelected ? "#e9e9e9" : "#f9f9f9";
                 };
 
                 eventDiv.onclick = (): void => {
@@ -596,7 +617,8 @@ export class UILogger implements Logger {
                         type: event.type,
                         timestamp: event.timestamp,
                         componentName: componentName,
-                        eventData: event.eventData
+                        eventData: event.eventData,
+                        eventIndex: eventIndex
                     });
                 };
 
