@@ -27,6 +27,10 @@ export class VisualLogger implements Logger {
     private isDragging = false;
     private startY = 0;
     private startHeight = 0;
+    private sidebarResizeHandle!: HTMLDivElement;
+    private isSidebarResizing = false;
+    private startX = 0;
+    private startSidebarWidth = 0;
 
     constructor() {
         this.loggerPanel = document.createElement("div");
@@ -47,6 +51,7 @@ export class VisualLogger implements Logger {
         this.createDragHandle();
         this.createHeader();
         this.createContentContainer();
+        this.createSidebarResizeHandle();
         document.body.appendChild(this.loggerPanel);
         this.setupEventListeners();
     }
@@ -152,10 +157,12 @@ export class VisualLogger implements Logger {
     private createSidebar(): void {
         this.sidebar = document.createElement("div");
         this.sidebar.style.width = "200px";
-        this.sidebar.style.minWidth = "200px";
+        this.sidebar.style.minWidth = "150px";
         this.sidebar.style.borderRight = "1px solid #ddd";
-        this.sidebar.style.overflow = "auto";
+        this.sidebar.style.overflowY = "auto";
+        this.sidebar.style.overflowX = "hidden";
         this.sidebar.style.backgroundColor = "#f9f9f9";
+        this.sidebar.style.position = "relative";
         this.contentContainer!.appendChild(this.sidebar);
     }
 
@@ -201,8 +208,35 @@ export class VisualLogger implements Logger {
         this.mainArea.appendChild(placeholder);
     }
 
+    private createSidebarResizeHandle(): void {
+        this.sidebarResizeHandle = document.createElement("div");
+        this.sidebarResizeHandle.style.position = "absolute";
+        this.sidebarResizeHandle.style.top = "0";
+        this.sidebarResizeHandle.style.right = "-2px";
+        this.sidebarResizeHandle.style.bottom = "0";
+        this.sidebarResizeHandle.style.width = "4px";
+        this.sidebarResizeHandle.style.cursor = "ew-resize";
+        this.sidebarResizeHandle.style.backgroundColor = "transparent";
+        this.sidebarResizeHandle.style.borderRight = "2px solid transparent";
+        this.sidebarResizeHandle.style.transition = "border-color 0.2s ease";
+        this.sidebarResizeHandle.style.zIndex = "3";
+        
+        this.sidebarResizeHandle.addEventListener("mouseenter", () => {
+            this.sidebarResizeHandle.style.borderRightColor = "#007acc";
+        });
+        
+        this.sidebarResizeHandle.addEventListener("mouseleave", () => {
+            if (!this.isSidebarResizing) {
+                this.sidebarResizeHandle.style.borderRightColor = "transparent";
+            }
+        });
+        
+        this.sidebar!.appendChild(this.sidebarResizeHandle);
+    }
+
     private setupEventListeners(): void {
         this.dragHandle.addEventListener("mousedown", this.onMouseDown.bind(this));
+        this.sidebarResizeHandle.addEventListener("mousedown", this.onSidebarMouseDown.bind(this));
         document.addEventListener("mousemove", this.onMouseMove.bind(this));
         document.addEventListener("mouseup", this.onMouseUp.bind(this));
     }
@@ -215,22 +249,44 @@ export class VisualLogger implements Logger {
         event.preventDefault();
     }
 
+    private onSidebarMouseDown(event: MouseEvent): void {
+        this.isSidebarResizing = true;
+        this.startX = event.clientX;
+        this.startSidebarWidth = this.sidebar!.offsetWidth;
+        this.sidebarResizeHandle.style.borderRightColor = "#007acc";
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
     private onMouseMove(event: MouseEvent): void {
-        if (!this.isDragging) return;
+        if (this.isDragging) {
+            const deltaY = this.startY - event.clientY;
+            const newHeight = this.startHeight + deltaY;
+            const minHeight = 150;
+            const maxHeight = window.innerHeight * 0.8;
+            
+            const clampedHeight = Math.max(minHeight, Math.min(maxHeight, newHeight));
+            this.loggerPanel.style.height = `${clampedHeight}px`;
+            this.loggerPanel.style.maxHeight = `${clampedHeight}px`;
+        }
         
-        const deltaY = this.startY - event.clientY;
-        const newHeight = this.startHeight + deltaY;
-        const minHeight = 150;
-        const maxHeight = window.innerHeight * 0.8;
-        
-        const clampedHeight = Math.max(minHeight, Math.min(maxHeight, newHeight));
-        this.loggerPanel.style.height = `${clampedHeight}px`;
-        this.loggerPanel.style.maxHeight = `${clampedHeight}px`;
+        if (this.isSidebarResizing) {
+            const deltaX = event.clientX - this.startX;
+            const newWidth = this.startSidebarWidth + deltaX;
+            const minWidth = 150;
+            const maxWidth = this.loggerPanel.offsetWidth * 0.2;
+            
+            const clampedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+            this.sidebar!.style.width = `${clampedWidth}px`;
+        }
     }
 
     private onMouseUp(): void {
         this.isDragging = false;
         this.dragHandle.style.borderTopColor = "transparent";
+        
+        this.isSidebarResizing = false;
+        this.sidebarResizeHandle.style.borderRightColor = "transparent";
     }
 
     private getOrCreateComponentGroup(componentName: string, componentPath?: string): ComponentGroup {
