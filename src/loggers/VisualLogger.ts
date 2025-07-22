@@ -13,6 +13,10 @@ const FLOW_ICON = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"18\" height
 
 const COMPONENT_ICON = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-component-icon lucide-component\"><path d=\"M15.536 11.293a1 1 0 0 0 0 1.414l2.376 2.377a1 1 0 0 0 1.414 0l2.377-2.377a1 1 0 0 0 0-1.414l-2.377-2.377a1 1 0 0 0-1.414 0z\"/><path d=\"M2.297 11.293a1 1 0 0 0 0 1.414l2.377 2.377a1 1 0 0 0 1.414 0l2.377-2.377a1 1 0 0 0 0-1.414L6.088 8.916a1 1 0 0 0-1.414 0z\"/><path d=\"M8.916 17.912a1 1 0 0 0 0 1.415l2.377 2.376a1 1 0 0 0 1.414 0l2.377-2.376a1 1 0 0 0 0-1.415l-2.377-2.376a1 1 0 0 0-1.414 0z\"/><path d=\"M8.916 4.674a1 1 0 0 0 0 1.414l2.377 2.376a1 1 0 0 0 1.414 0l2.377-2.376a1 1 0 0 0 0-1.414l-2.377-2.377a1 1 0 0 0-1.414 0z\"/></svg>"
 
+const MINIMIZE_ICON = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-minimize-2\"><polyline points=\"4,14 10,14 10,20\"/><polyline points=\"20,10 14,10 14,4\"/><line x1=\"14\" y1=\"10\" x2=\"21\" y2=\"3\"/><line x1=\"3\" y1=\"21\" x2=\"10\" y2=\"14\"/></svg>";
+
+const MAXIMIZE_ICON = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-maximize-2\"><polyline points=\"15,3 21,3 21,9\"/><polyline points=\"9,21 3,21 3,15\"/><line x1=\"21\" y1=\"3\" x2=\"14\" y2=\"10\"/><line x1=\"3\" y1=\"21\" x2=\"10\" y2=\"14\"/></svg>";
+
 const PLUGIN_URL = 'https://github.com/MiloradFilipovic/vue-flow-vis';
 
 export class VisualLogger implements Logger {
@@ -35,6 +39,8 @@ export class VisualLogger implements Logger {
     private isLeftResizing = false;
     private startLeftX = 0;
     private startPanelWidth = 0;
+    private isMinimized = false;
+    private savedHeight = 250;
 
     constructor() {
         this.loggerPanel = document.createElement("div");
@@ -158,6 +164,22 @@ export class VisualLogger implements Logger {
         title.style.paddingBottom = "2px";
         titleContainer.appendChild(title);
 
+        const buttonContainer = document.createElement("div");
+        buttonContainer.style.display = "flex";
+        buttonContainer.style.gap = "0.5em";
+        buttonContainer.style.alignItems = "center";
+
+        const minimizeButton = document.createElement("button");
+        minimizeButton.innerHTML = MINIMIZE_ICON;
+        minimizeButton.style.color = "black";
+        minimizeButton.style.border = "none";
+        minimizeButton.style.cursor = "pointer";
+        minimizeButton.style.backgroundColor = "transparent";
+        minimizeButton.style.padding = "0";
+        minimizeButton.title = "Minimize panel";
+        minimizeButton.classList.add("minimize-button");
+        minimizeButton.onclick = (): void => this.toggleMinimize();
+
         const clearButton = document.createElement("button");
         clearButton.innerHTML = TRASH_ICON;
         clearButton.style.color = "black";
@@ -168,8 +190,11 @@ export class VisualLogger implements Logger {
         clearButton.title = "Clear log";
         clearButton.onclick = (): void => this.clear();
 
+        buttonContainer.appendChild(clearButton);
+        buttonContainer.appendChild(minimizeButton);
+
         this.headerElement.appendChild(titleContainer);
-        this.headerElement.appendChild(clearButton);
+        this.headerElement.appendChild(buttonContainer);
         this.loggerPanel.appendChild(this.headerElement);
     }
 
@@ -579,6 +604,42 @@ export class VisualLogger implements Logger {
         } else {
             this.mainArea.innerHTML = "";
             this.mainArea.appendChild(errorDiv);
+        }
+    }
+
+    private toggleMinimize(): void {
+        if (this.isMinimized) {
+            // Restore panel
+            this.loggerPanel.style.height = `${this.savedHeight}px`;
+            this.loggerPanel.style.maxHeight = `${this.savedHeight}px`;
+            this.loggerPanel.style.minHeight = `${this.savedHeight}px`;
+            this.contentContainer!.style.display = "flex";
+            this.dragHandle.style.display = "block";
+            this.leftResizeHandle.style.display = "block";
+            
+            const minimizeButton = this.headerElement!.querySelector(".minimize-button") as HTMLButtonElement;
+            minimizeButton.innerHTML = MINIMIZE_ICON;
+            minimizeButton.title = "Minimize panel";
+            
+            this.isMinimized = false;
+        } else {
+            // Minimize panel
+            this.savedHeight = parseInt(window.getComputedStyle(this.loggerPanel).height, 10);
+            this.contentContainer!.style.display = "none";
+            this.dragHandle.style.display = "none";
+            this.leftResizeHandle.style.display = "none";
+            
+            // Calculate header height after hiding content
+            const headerHeight = this.headerElement!.offsetHeight;
+            this.loggerPanel.style.height = `${headerHeight}px`;
+            this.loggerPanel.style.maxHeight = `${headerHeight}px`;
+            this.loggerPanel.style.minHeight = `${headerHeight}px`;
+            
+            const minimizeButton = this.headerElement!.querySelector(".minimize-button") as HTMLButtonElement;
+            minimizeButton.innerHTML = MAXIMIZE_ICON;
+            minimizeButton.title = "Restore panel";
+            
+            this.isMinimized = true;
         }
     }
 
