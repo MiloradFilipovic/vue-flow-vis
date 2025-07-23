@@ -1,7 +1,7 @@
 /* eslint-disable no-undef */
 import { Logger, RenderEventData } from "../../types";
 import { PLUGIN_URL } from "./constants";
-import { createComponentIcon, createExpandIcon, createFlowIcon, createMinimizeIcon, createTrashIcon } from "./icons";
+import { createComponentIcon, createExpandIcon, createFlowIcon, createMinimizeIcon, createTrackIcon, createTrashIcon, createTriggerIcon } from "./icons";
 import { MAIN_AREA_PLACEHOLDER } from "./strings";
 
 type ComponentGroup = {
@@ -42,6 +42,8 @@ export class UILogger implements Logger {
     private startPanelWidth = 0;
     private isMinimized = false;
     private savedHeight = 250;
+    private showTrackedEvents = true;
+    private showTriggeredEvents = true;
 
     constructor() {
         this.loggerPanel = document.createElement("div");
@@ -561,24 +563,53 @@ export class UILogger implements Logger {
         contentArea.id = `vue-flow-vis-content-area-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         contentArea.style.flex = "1";
         contentArea.style.display = "flex";
-        contentArea.style.gap = "1em";
         contentArea.style.minHeight = "0";
 
         const eventsListArea = document.createElement("div");
         eventsListArea.id = `vue-flow-vis-events-list-area-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         eventsListArea.style.flex = "1";
         eventsListArea.style.display = "flex";
-        eventsListArea.style.padding = "1em";
         eventsListArea.style.flexDirection = "column";
         eventsListArea.style.minHeight = "0";
 
-        const eventsHeader = document.createElement("h4");
+        const eventsHeader = document.createElement("div");
         eventsHeader.id = `vue-flow-vis-events-header-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
-        eventsHeader.textContent = "Events";
         eventsHeader.style.margin = "0 0 0.5em 0";
-        eventsHeader.style.fontFamily = "monospace";
-        eventsHeader.style.fontSize = "1em";
-        eventsHeader.style.color = "#333";
+        eventsHeader.style.display = "flex";
+        eventsHeader.style.padding = "0.3em 0.5em";
+        eventsHeader.style.borderBottom = "1px solid #ddd";
+        eventsHeader.style.justifyContent = "flex-end";
+        eventsHeader.style.gap = "0.5em";
+
+        const triggerButton = document.createElement("button");
+        triggerButton.id = `vue-flow-vis-trigger-button-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
+        triggerButton.innerHTML = createTriggerIcon(14);
+        triggerButton.style.color = this.showTriggeredEvents ? "#ff9800" : "#ccc";
+        triggerButton.style.border = "none";
+        triggerButton.style.cursor = "pointer";
+        triggerButton.style.backgroundColor = "transparent";
+        triggerButton.style.padding = "0";
+        triggerButton.style.position = "relative";
+        triggerButton.style.top = "2px";
+        triggerButton.title = this.showTriggeredEvents ? "Hide render triggered events" : "Show render triggered events";
+        triggerButton.onclick = (): void => this.toggleTriggeredEvents();
+
+        const trackedButton = document.createElement("button");
+        trackedButton.id = `vue-flow-vis-tracked-button-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
+        trackedButton.innerHTML = createTrackIcon(14);
+        trackedButton.style.color = this.showTrackedEvents ? "#068261ff" : "#ccc";
+        trackedButton.style.border = "none";
+        trackedButton.style.cursor = "pointer";
+        trackedButton.style.backgroundColor = "transparent";
+        trackedButton.style.padding = "0";
+        trackedButton.style.position = "relative";
+        trackedButton.style.top = "2px";
+        trackedButton.title = this.showTrackedEvents ? "Hide render tracked events" : "Show render tracked events";
+        trackedButton.onclick = (): void => this.toggleTrackedEvents();
+
+        eventsHeader.appendChild(triggerButton);
+        eventsHeader.appendChild(trackedButton);
+
         eventsListArea.appendChild(eventsHeader);
 
         const scrollableContainer = document.createElement("div");
@@ -589,13 +620,20 @@ export class UILogger implements Logger {
         scrollableContainer.style.width = "100%";
         scrollableContainer.style.boxSizing = "border-box";
 
-        if (group.events.length === 0) {
+        // Check if there are any visible events
+        const visibleEvents = group.events.filter(event => 
+            (event.type === 'tracked' && this.showTrackedEvents) || 
+            (event.type === 'triggered' && this.showTriggeredEvents)
+        );
+
+        if (visibleEvents.length === 0) {
             const noEvents = document.createElement("p");
             noEvents.id = `vue-flow-vis-no-events-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
-            noEvents.textContent = "No events recorded yet";
+            noEvents.textContent = group.events.length === 0 ? "No events recorded yet" : "No events to display";
             noEvents.style.color = "#666";
             noEvents.style.fontStyle = "italic";
             noEvents.style.margin = "0";
+            noEvents.style.padding = "1em";
             scrollableContainer.appendChild(noEvents);
         } else {
             const eventsContainer = document.createElement("div");
@@ -607,6 +645,14 @@ export class UILogger implements Logger {
             eventsContainer.style.boxSizing = "border-box";
 
             group.events.forEach((event, eventIndex) => {
+                // Filter events based on visibility state
+                const shouldShow = (event.type === 'tracked' && this.showTrackedEvents) || 
+                                 (event.type === 'triggered' && this.showTriggeredEvents);
+                
+                if (!shouldShow) {
+                    return;
+                }
+
                 const eventDiv = document.createElement("div");
                 eventDiv.id = `vue-flow-vis-event-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
                 eventDiv.style.display = "block";
@@ -652,12 +698,20 @@ export class UILogger implements Logger {
                     });
                 };
 
+                const iconSpan = document.createElement("span");
+                iconSpan.id = `vue-flow-vis-event-icon-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
+                iconSpan.innerHTML = event.type === 'tracked' ? createTrackIcon(14) : createTriggerIcon(14);
+                iconSpan.style.color = event.type === 'tracked' ? "#068261ff" : "#ff9800";
+                iconSpan.style.marginRight = "0.5em";
+                iconSpan.style.position = "relative";
+                iconSpan.style.top = "2px";
+
                 const eventSpan = document.createElement("span");
                 eventSpan.id = `vue-flow-vis-event-span-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
                 eventSpan.textContent = event.type === 'tracked' ? 'Render tracked' : 'Render triggered';
                 eventSpan.style.color = event.type === 'tracked' ? "#068261ff" : "#ff9800";
-                eventSpan.style.fontWeight = "bold";
 
+                eventDiv.appendChild(iconSpan);
                 eventDiv.appendChild(eventSpan);
                 eventsContainer.appendChild(eventDiv);
             });
@@ -690,18 +744,10 @@ export class UILogger implements Logger {
         detailsArea.style.display = "flex";
         detailsArea.style.flexDirection = "column";
         detailsArea.style.minHeight = "0";
+        detailsArea.style.padding = "0.5em";
         detailsArea.style.borderLeft = "1px solid #ddd";
         detailsArea.style.paddingLeft = "1em";
         detailsArea.style.overflow = "auto";
-
-        const detailsHeader = document.createElement("h4");
-        detailsHeader.id = "vue-flow-vis-event-details-header";
-        detailsHeader.textContent = "Event Details";
-        detailsHeader.style.margin = "0 0 0.5em 0";
-        detailsHeader.style.fontFamily = "monospace";
-        detailsHeader.style.fontSize = "1em";
-        detailsHeader.style.color = "#333";
-        detailsArea.appendChild(detailsHeader);
 
         if (this.selectedEvent) {
             const scrollableContent = document.createElement("div");
@@ -925,5 +971,19 @@ export class UILogger implements Logger {
         this.selectedEvent = null;
         this.sidebar.innerHTML = "";
         this.showPlaceholderText();
+    }
+
+    private toggleTriggeredEvents(): void {
+        this.showTriggeredEvents = !this.showTriggeredEvents;
+        if (this.selectedComponent) {
+            this.displayComponentEvents(this.selectedComponent);
+        }
+    }
+
+    private toggleTrackedEvents(): void {
+        this.showTrackedEvents = !this.showTrackedEvents;
+        if (this.selectedComponent) {
+            this.displayComponentEvents(this.selectedComponent);
+        }
     }
 }
