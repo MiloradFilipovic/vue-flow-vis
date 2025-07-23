@@ -687,7 +687,7 @@ export class UILogger implements Logger {
 
             // Operation Type
             const operation = this.selectedEvent.eventData.event.type;
-            scrollableContent.appendChild(this.createDetailField("Operation", operation.toUpperCase(), "#007acc"));
+            scrollableContent.appendChild(this.createDetailField("Operation", operation?.toUpperCase() ?? "UNKNOWN", "#007acc"));
 
             // Target Property
             const key = this.formatKey(this.selectedEvent.eventData.event.key);
