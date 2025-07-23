@@ -44,6 +44,8 @@ export class UILogger implements Logger {
     private savedHeight = 250;
     private showTrackedEvents = true;
     private showTriggeredEvents = true;
+    private componentFilter = "";
+    private searchDebounceTimer: number | null = null;
 
     constructor() {
         this.loggerPanel = document.createElement("div");
@@ -230,10 +232,65 @@ export class UILogger implements Logger {
         this.sidebar.style.width = "200px";
         this.sidebar.style.minWidth = "150px";
         this.sidebar.style.borderRight = "1px solid #ddd";
-        this.sidebar.style.overflowY = "auto";
-        this.sidebar.style.overflowX = "hidden";
         this.sidebar.style.backgroundColor = "#f9f9f9";
         this.sidebar.style.position = "relative";
+        this.sidebar.style.display = "flex";
+        this.sidebar.style.flexDirection = "column";
+
+        // Create sidebar header with search input
+        const sidebarHeader = document.createElement("div");
+        sidebarHeader.id = "vue-flow-vis-sidebar-header";
+        sidebarHeader.style.padding = "0.5em";
+        sidebarHeader.style.borderBottom = "1px solid #ddd";
+        sidebarHeader.style.backgroundColor = "#f5f5f5";
+        sidebarHeader.style.flexShrink = "0";
+
+        const searchInput = document.createElement("input");
+        searchInput.id = "vue-flow-vis-component-search";
+        searchInput.type = "text";
+        searchInput.placeholder = "Filter components...";
+        searchInput.style.width = "100%";
+        searchInput.style.padding = "0.4em";
+        searchInput.style.border = "1px solid #ddd";
+        searchInput.style.borderRadius = "4px";
+        searchInput.style.fontSize = "0.9em";
+        searchInput.style.fontFamily = "Arial, sans-serif";
+        searchInput.style.boxSizing = "border-box";
+        searchInput.style.outline = "none";
+
+        // Add focus styles
+        searchInput.addEventListener("focus", () => {
+            searchInput.style.borderColor = "#007acc";
+        });
+
+        searchInput.addEventListener("blur", () => {
+            searchInput.style.borderColor = "#ddd";
+        });
+
+        // Add debounced search functionality
+        searchInput.addEventListener("input", () => {
+            if (this.searchDebounceTimer !== null) {
+                clearTimeout(this.searchDebounceTimer);
+            }
+            
+            this.searchDebounceTimer = window.setTimeout(() => {
+                this.componentFilter = searchInput.value.toLowerCase().trim();
+                this.filterComponents();
+                this.searchDebounceTimer = null;
+            }, 300);
+        });
+
+        sidebarHeader.appendChild(searchInput);
+        this.sidebar.appendChild(sidebarHeader);
+
+        // Create scrollable content area for component list
+        const sidebarContent = document.createElement("div");
+        sidebarContent.id = "vue-flow-vis-sidebar-content";
+        sidebarContent.style.flex = "1";
+        sidebarContent.style.overflowY = "auto";
+        sidebarContent.style.overflowX = "hidden";
+        this.sidebar.appendChild(sidebarContent);
+
         this.contentContainer!.appendChild(this.sidebar);
     }
 
@@ -430,7 +487,8 @@ export class UILogger implements Logger {
             this.selectComponent(componentName);
         };
 
-        this.sidebar.appendChild(sidebarItem);
+        const sidebarContent = this.sidebar.querySelector("#vue-flow-vis-sidebar-content") as HTMLDivElement;
+        sidebarContent.appendChild(sidebarItem);
 
         const group: ComponentGroup = {
             sidebarItem,
@@ -482,6 +540,11 @@ export class UILogger implements Logger {
         group.sidebarItem.innerHTML = "";
         group.sidebarItem.appendChild(icon);
         group.sidebarItem.appendChild(nameContainer);
+
+        // Apply current filter to the updated item
+        const shouldShow = this.componentFilter === "" || 
+                         componentName.toLowerCase().includes(this.componentFilter);
+        group.sidebarItem.style.display = shouldShow ? "flex" : "none";
     }
 
     private addEventToGroup(componentName: string, eventType: 'tracked' | 'triggered', eventData: RenderEventData, componentPath?: string): void {
@@ -534,7 +597,6 @@ export class UILogger implements Logger {
         const header = document.createElement("div");
         header.id = `vue-flow-vis-component-header-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         header.style.display = "flex";
-        header.style.alignItems = "center";
         header.style.padding = "0.3em 0.5em";
         header.style.borderBottom = "1px solid #ddd";
         header.style.flexShrink = "0";
@@ -578,7 +640,6 @@ export class UILogger implements Logger {
         eventsHeader.style.display = "flex";
         eventsHeader.style.padding = "0.3em 0.5em";
         eventsHeader.style.borderBottom = "1px solid #ddd";
-        eventsHeader.style.justifyContent = "flex-end";
         eventsHeader.style.gap = "0.5em";
 
         const triggerButton = document.createElement("button");
@@ -969,7 +1030,16 @@ export class UILogger implements Logger {
         this.componentGroups.clear();
         this.selectedComponent = null;
         this.selectedEvent = null;
-        this.sidebar.innerHTML = "";
+        this.componentFilter = "";
+        
+        // Clear search input
+        const searchInput = this.sidebar.querySelector("#vue-flow-vis-component-search") as HTMLInputElement;
+        if (searchInput) {
+            searchInput.value = "";
+        }
+        
+        const sidebarContent = this.sidebar.querySelector("#vue-flow-vis-sidebar-content") as HTMLDivElement;
+        sidebarContent.innerHTML = "";
         this.showPlaceholderText();
     }
 
@@ -985,5 +1055,16 @@ export class UILogger implements Logger {
         if (this.selectedComponent) {
             this.displayComponentEvents(this.selectedComponent);
         }
+    }
+
+    private filterComponents(): void {
+        if (!this.sidebar) return;
+
+        this.componentGroups.forEach((group, componentName) => {
+            const shouldShow = this.componentFilter === "" || 
+                             componentName.toLowerCase().includes(this.componentFilter);
+            
+            group.sidebarItem.style.display = shouldShow ? "flex" : "none";
+        });
     }
 }
