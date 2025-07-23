@@ -45,16 +45,15 @@ export class UILogger implements Logger {
 
     constructor() {
         this.loggerPanel = document.createElement("div");
+        this.loggerPanel.id = "vue-flow-vis-logger-panel";
         this.loggerPanel.style.position = "fixed";
         this.loggerPanel.style.bottom = "1em";
         this.loggerPanel.style.right = "1em";
         this.loggerPanel.style.width = "95vw";
-        this.loggerPanel.style.maxWidth = "95vw";
-        this.loggerPanel.style.maxHeight = "450px";
-        this.loggerPanel.style.minHeight = "450px";
+        this.loggerPanel.style.height = "450px";
         this.loggerPanel.style.display = "flex";
         this.loggerPanel.style.flexDirection = "column";
-        this.loggerPanel.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
+        this.loggerPanel.style.backgroundColor = "#fff";
         this.loggerPanel.style.border = "1px solid #ccc";
         this.loggerPanel.style.zIndex = "9999";
         this.loggerPanel.style.fontFamily = "Arial, sans-serif";
@@ -71,6 +70,7 @@ export class UILogger implements Logger {
 
     private createDragHandle(): void {
         this.dragHandle = document.createElement("div");
+        this.dragHandle.id = "vue-flow-vis-drag-handle";
         this.dragHandle.style.position = "absolute";
         this.dragHandle.style.top = "0";
         this.dragHandle.style.left = "0";
@@ -97,6 +97,7 @@ export class UILogger implements Logger {
 
     private createLeftResizeHandle(): void {
         this.leftResizeHandle = document.createElement("div");
+        this.leftResizeHandle.id = "vue-flow-vis-left-resize-handle";
         this.leftResizeHandle.style.position = "absolute";
         this.leftResizeHandle.style.top = "0";
         this.leftResizeHandle.style.left = "0";
@@ -123,6 +124,7 @@ export class UILogger implements Logger {
 
     private createHeader(): void {
         this.headerElement = document.createElement("div");
+        this.headerElement.id = "vue-flow-vis-header";
         this.headerElement.style.display = "flex";
         this.headerElement.style.justifyContent = "space-between";
         this.headerElement.style.alignItems = "center";
@@ -134,12 +136,14 @@ export class UILogger implements Logger {
         this.headerElement.style.userSelect = "none";
 
         const titleContainer = document.createElement("div");
+        titleContainer.id = "vue-flow-vis-title-container";
         titleContainer.style.display = "flex";
         titleContainer.style.alignItems = "center";
         titleContainer.style.gap = "0.5em";
         titleContainer.style.alignContent = "center";
 
         const pluginLink = document.createElement("a");
+        pluginLink.id = "vue-flow-vis-plugin-link";
         pluginLink.href = PLUGIN_URL;
         pluginLink.target = "_blank";
         pluginLink.style.textDecoration = "none";
@@ -147,6 +151,7 @@ export class UILogger implements Logger {
         titleContainer.appendChild(pluginLink);
 
         const icon = document.createElement("span");
+        icon.id = "vue-flow-vis-header-icon";
         icon.innerHTML = createFlowIcon(18);
         icon.style.color = "black";
         icon.style.position = "relative";
@@ -160,17 +165,20 @@ export class UILogger implements Logger {
         };
 
         const title = document.createElement("span");
+        title.id = "vue-flow-vis-title";
         title.textContent = "vue-flow-vis";
         title.style.fontFamily = "monospace";
         title.style.paddingBottom = "2px";
         titleContainer.appendChild(title);
 
         const buttonContainer = document.createElement("div");
+        buttonContainer.id = "vue-flow-vis-button-container";
         buttonContainer.style.display = "flex";
         buttonContainer.style.gap = "0.5em";
         buttonContainer.style.alignItems = "center";
 
         const minimizeButton = document.createElement("button");
+        minimizeButton.id = "vue-flow-vis-minimize-button";
         minimizeButton.innerHTML = createMinimizeIcon(14);
         minimizeButton.style.color = "black";
         minimizeButton.style.border = "none";
@@ -182,6 +190,7 @@ export class UILogger implements Logger {
         minimizeButton.onclick = (): void => this.toggleMinimize();
 
         const clearButton = document.createElement("button");
+        clearButton.id = "vue-flow-vis-clear-button";
         clearButton.innerHTML = createTrashIcon(14);
         clearButton.style.color = "#000";
         clearButton.style.border = "none";
@@ -201,6 +210,7 @@ export class UILogger implements Logger {
 
     private createContentContainer(): void {
         this.contentContainer = document.createElement("div");
+        this.contentContainer.id = "vue-flow-vis-content-container";
         this.contentContainer.style.flex = "1";
         this.contentContainer.style.display = "flex";
         this.contentContainer.style.flexDirection = "row";
@@ -214,6 +224,7 @@ export class UILogger implements Logger {
 
     private createSidebar(): void {
         this.sidebar = document.createElement("div");
+        this.sidebar.id = "vue-flow-vis-sidebar";
         this.sidebar.style.width = "200px";
         this.sidebar.style.minWidth = "150px";
         this.sidebar.style.borderRight = "1px solid #ddd";
@@ -226,9 +237,9 @@ export class UILogger implements Logger {
 
     private createMainArea(): void {
         this.mainArea = document.createElement("div");
+        this.mainArea.id = "vue-flow-vis-main-area";
         this.mainArea.style.flex = "1";
         this.mainArea.style.overflow = "hidden";
-        this.mainArea.style.padding = "1em";
         this.mainArea.style.display = "flex";
         this.mainArea.style.flexDirection = "column";
         
@@ -242,6 +253,7 @@ export class UILogger implements Logger {
         
         this.mainArea.innerHTML = "";
         const placeholder = document.createElement("div");
+        placeholder.id = "vue-flow-vis-placeholder";
         placeholder.style.display = "flex";
         placeholder.style.flexDirection = "column";
         placeholder.style.alignItems = "center";
@@ -252,12 +264,14 @@ export class UILogger implements Logger {
         placeholder.style.textAlign = "center";
         
         const icon = document.createElement("div");
+        icon.id = "vue-flow-vis-placeholder-icon";
         icon.innerHTML = createFlowIcon(32);
         icon.style.color = "#007acc";
         icon.style.opacity = "0.35";
         icon.style.marginBottom = "0.5em";
         
         const text = document.createElement("p");
+        text.id = "vue-flow-vis-placeholder-text";
         text.textContent = MAIN_AREA_PLACEHOLDER;
         text.style.margin = "0";
         text.style.fontSize = "0.9em";
@@ -269,6 +283,7 @@ export class UILogger implements Logger {
 
     private createSidebarResizeHandle(): void {
         this.sidebarResizeHandle = document.createElement("div");
+        this.sidebarResizeHandle.id = "vue-flow-vis-sidebar-resize-handle";
         this.sidebarResizeHandle.style.position = "absolute";
         this.sidebarResizeHandle.style.top = "0";
         this.sidebarResizeHandle.style.right = "-2px";
@@ -386,6 +401,7 @@ export class UILogger implements Logger {
         }
 
         const sidebarItem = document.createElement("div");
+        sidebarItem.id = `vue-flow-vis-sidebar-item-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         sidebarItem.style.display = "flex";
         sidebarItem.style.padding = "0.75em";
         sidebarItem.style.cursor = "pointer";
@@ -432,6 +448,7 @@ export class UILogger implements Logger {
         if (!group) return;
 
         const icon = document.createElement("span");
+        icon.id = `vue-flow-vis-sidebar-icon-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         icon.innerHTML = createComponentIcon(14);
         icon.style.color = "#007acc";
         icon.style.position = "relative";
@@ -439,10 +456,12 @@ export class UILogger implements Logger {
         icon.style.flexShrink = "0";
 
         const nameContainer = document.createElement("div");
+        nameContainer.id = `vue-flow-vis-name-container-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         nameContainer.style.flex = "1";
         nameContainer.style.overflow = "hidden";
 
         const nameSpan = document.createElement("div");
+        nameSpan.id = `vue-flow-vis-name-span-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         nameSpan.textContent = componentName;
         nameSpan.style.fontWeight = "bold";
         nameSpan.style.whiteSpace = "nowrap";
@@ -450,6 +469,7 @@ export class UILogger implements Logger {
         nameSpan.style.textOverflow = "ellipsis";
 
         const countSpan = document.createElement("div");
+        countSpan.id = `vue-flow-vis-count-span-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         countSpan.textContent = `${group.eventCount} events`;
         countSpan.style.fontSize = "0.8em";
         countSpan.style.color = "#666";
@@ -510,19 +530,21 @@ export class UILogger implements Logger {
         this.mainArea.innerHTML = "";
 
         const header = document.createElement("div");
+        header.id = `vue-flow-vis-component-header-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         header.style.display = "flex";
         header.style.alignItems = "center";
-        header.style.marginBottom = "1em";
-        header.style.paddingBottom = "0.5em";
+        header.style.padding = "0.3em 0.5em";
         header.style.borderBottom = "1px solid #ddd";
         header.style.flexShrink = "0";
 
         const icon = document.createElement("span");
+        icon.id = `vue-flow-vis-component-icon-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         icon.innerHTML = createComponentIcon(14);
         icon.style.color = "#007acc";
         icon.style.marginRight = "0.5em";
 
         const title = document.createElement("h3");
+        title.id = `vue-flow-vis-component-title-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         const displayText = group.componentPath || componentName;
         title.textContent = `${displayText}`;
         title.style.margin = "0";
@@ -536,18 +558,22 @@ export class UILogger implements Logger {
         this.mainArea.appendChild(header);
 
         const contentArea = document.createElement("div");
+        contentArea.id = `vue-flow-vis-content-area-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         contentArea.style.flex = "1";
         contentArea.style.display = "flex";
         contentArea.style.gap = "1em";
         contentArea.style.minHeight = "0";
 
         const eventsListArea = document.createElement("div");
+        eventsListArea.id = `vue-flow-vis-events-list-area-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         eventsListArea.style.flex = "1";
         eventsListArea.style.display = "flex";
+        eventsListArea.style.padding = "1em";
         eventsListArea.style.flexDirection = "column";
         eventsListArea.style.minHeight = "0";
 
         const eventsHeader = document.createElement("h4");
+        eventsHeader.id = `vue-flow-vis-events-header-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         eventsHeader.textContent = "Events";
         eventsHeader.style.margin = "0 0 0.5em 0";
         eventsHeader.style.fontFamily = "monospace";
@@ -556,6 +582,7 @@ export class UILogger implements Logger {
         eventsListArea.appendChild(eventsHeader);
 
         const scrollableContainer = document.createElement("div");
+        scrollableContainer.id = `vue-flow-vis-scrollable-container-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         scrollableContainer.style.flex = "1";
         scrollableContainer.style.overflow = "auto";
         scrollableContainer.style.minHeight = "0";
@@ -564,6 +591,7 @@ export class UILogger implements Logger {
 
         if (group.events.length === 0) {
             const noEvents = document.createElement("p");
+            noEvents.id = `vue-flow-vis-no-events-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
             noEvents.textContent = "No events recorded yet";
             noEvents.style.color = "#666";
             noEvents.style.fontStyle = "italic";
@@ -571,6 +599,7 @@ export class UILogger implements Logger {
             scrollableContainer.appendChild(noEvents);
         } else {
             const eventsContainer = document.createElement("div");
+            eventsContainer.id = `vue-flow-vis-events-container-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
             eventsContainer.style.display = "flex";
             eventsContainer.style.flexDirection = "column";
             eventsContainer.style.gap = "0.5em";
@@ -579,6 +608,7 @@ export class UILogger implements Logger {
 
             group.events.forEach((event, eventIndex) => {
                 const eventDiv = document.createElement("div");
+                eventDiv.id = `vue-flow-vis-event-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
                 eventDiv.style.display = "block";
                 eventDiv.style.padding = "0.5em";
                 eventDiv.style.border = "1px solid #ddd";
@@ -623,6 +653,7 @@ export class UILogger implements Logger {
                 };
 
                 const eventSpan = document.createElement("span");
+                eventSpan.id = `vue-flow-vis-event-span-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
                 eventSpan.textContent = event.type === 'tracked' ? 'Render tracked' : 'Render triggered';
                 eventSpan.style.color = event.type === 'tracked' ? "#068261ff" : "#ff9800";
                 eventSpan.style.fontWeight = "bold";
@@ -654,6 +685,7 @@ export class UILogger implements Logger {
 
     private createEventDetailsArea(): HTMLDivElement {
         const detailsArea = document.createElement("div");
+        detailsArea.id = "vue-flow-vis-event-details-area";
         detailsArea.style.flex = "1";
         detailsArea.style.display = "flex";
         detailsArea.style.flexDirection = "column";
@@ -663,6 +695,7 @@ export class UILogger implements Logger {
         detailsArea.style.overflow = "auto";
 
         const detailsHeader = document.createElement("h4");
+        detailsHeader.id = "vue-flow-vis-event-details-header";
         detailsHeader.textContent = "Event Details";
         detailsHeader.style.margin = "0 0 0.5em 0";
         detailsHeader.style.fontFamily = "monospace";
@@ -672,6 +705,7 @@ export class UILogger implements Logger {
 
         if (this.selectedEvent) {
             const scrollableContent = document.createElement("div");
+            scrollableContent.id = "vue-flow-vis-event-details-scrollable";
             scrollableContent.style.display = "flex";
             scrollableContent.style.flexDirection = "column";
             scrollableContent.style.gap = "0.5em";
@@ -723,6 +757,7 @@ export class UILogger implements Logger {
 
     private createDetailField(label: string, value: string, valueColor: string = "#333"): HTMLDivElement {
         const fieldDiv = document.createElement("div");
+        fieldDiv.id = `vue-flow-vis-detail-field-${label.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
         fieldDiv.style.display = "flex";
         fieldDiv.style.flexDirection = "column";
         fieldDiv.style.padding = "0.5em";
@@ -731,6 +766,7 @@ export class UILogger implements Logger {
         fieldDiv.style.borderRadius = "4px";
 
         const labelSpan = document.createElement("span");
+        labelSpan.id = `vue-flow-vis-detail-label-${label.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
         labelSpan.textContent = label + ":";
         labelSpan.style.fontFamily = "monospace";
         labelSpan.style.fontSize = "0.8em";
@@ -739,6 +775,7 @@ export class UILogger implements Logger {
         labelSpan.style.marginBottom = "0.25em";
 
         const valueSpan = document.createElement("span");
+        valueSpan.id = `vue-flow-vis-detail-value-${label.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
         valueSpan.textContent = value;
         valueSpan.style.fontFamily = "monospace";
         valueSpan.style.fontSize = "0.9em";
@@ -822,6 +859,7 @@ export class UILogger implements Logger {
         }
 
         const errorDiv = document.createElement("div");
+        errorDiv.id = `vue-flow-vis-error-${Date.now()}`;
         errorDiv.style.color = "red";
         errorDiv.style.marginBottom = "0.5em";
         errorDiv.style.padding = "0.5em";
