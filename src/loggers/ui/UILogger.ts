@@ -2,7 +2,7 @@
 import { Logger, RenderEventData } from "../../types";
 import { PLUGIN_URL } from "./constants";
 import { createComponentIcon, createExpandIcon, createFlowIcon, createMinimizeIcon, createTrackIcon, createTrashIcon, createTriggerIcon } from "./icons";
-import { MAIN_AREA_PLACEHOLDER } from "./strings";
+import { FILTER_COMPONENTS_PLACEHOLDER, MAIN_AREA_PLACEHOLDER } from "./strings";
 
 type ComponentGroup = {
     sidebarItem: HTMLDivElement;
@@ -53,7 +53,7 @@ export class UILogger implements Logger {
         this.loggerPanel.style.position = "fixed";
         this.loggerPanel.style.bottom = "1em";
         this.loggerPanel.style.right = "1em";
-        this.loggerPanel.style.width = "95vw";
+        this.loggerPanel.style.width = "50vw";
         this.loggerPanel.style.height = "450px";
         this.loggerPanel.style.display = "flex";
         this.loggerPanel.style.flexDirection = "column";
@@ -248,9 +248,10 @@ export class UILogger implements Logger {
         const searchInput = document.createElement("input");
         searchInput.id = "vue-flow-vis-component-search";
         searchInput.type = "text";
-        searchInput.placeholder = "Filter components...";
+        searchInput.placeholder = FILTER_COMPONENTS_PLACEHOLDER;
         searchInput.style.width = "100%";
         searchInput.style.padding = "0.4em";
+        searchInput.style.fontFamily = 'monospace';
         searchInput.style.border = "1px solid #ddd";
         searchInput.style.borderRadius = "4px";
         searchInput.style.fontSize = "0.9em";
@@ -332,6 +333,7 @@ export class UILogger implements Logger {
         const text = document.createElement("p");
         text.id = "vue-flow-vis-placeholder-text";
         text.textContent = MAIN_AREA_PLACEHOLDER;
+        text.style.fontFamily = 'monospace';
         text.style.margin = "0";
         text.style.fontSize = "0.9em";
         
@@ -517,7 +519,10 @@ export class UILogger implements Logger {
 
         const nameContainer = document.createElement("div");
         nameContainer.id = `vue-flow-vis-name-container-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
+        nameContainer.style.display = "flex";
         nameContainer.style.flex = "1";
+        nameContainer.style.flexDirection = "column";
+        nameContainer.style.gap = "2px";
         nameContainer.style.overflow = "hidden";
 
         const nameSpan = document.createElement("div");
@@ -606,6 +611,8 @@ export class UILogger implements Logger {
         icon.innerHTML = createComponentIcon(14);
         icon.style.color = "#007acc";
         icon.style.marginRight = "0.5em";
+        icon.style.position = "relative";
+        icon.style.top = "2px";
 
         const title = document.createElement("h3");
         title.id = `vue-flow-vis-component-title-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
@@ -615,7 +622,7 @@ export class UILogger implements Logger {
         title.style.fontFamily = "monospace";
         title.style.fontSize = "1em";
         title.style.position = "relative";
-        title.style.top = "-1px";
+        title.style.top = "1px";
 
         header.appendChild(icon);
         header.appendChild(title);
@@ -638,6 +645,7 @@ export class UILogger implements Logger {
         eventsHeader.id = `vue-flow-vis-events-header-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         eventsHeader.style.margin = "0 0 0.5em 0";
         eventsHeader.style.display = "flex";
+        eventsHeader.style.justifyContent = "end";
         eventsHeader.style.padding = "0.3em 0.5em";
         eventsHeader.style.borderBottom = "1px solid #ddd";
         eventsHeader.style.gap = "0.5em";
