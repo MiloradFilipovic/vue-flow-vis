@@ -1,8 +1,8 @@
 /* eslint-disable no-undef */
 import { Logger, RenderEventData } from "../../types";
-import { PLUGIN_URL } from "./constants";
-import { createComponentIcon, createExpandIcon, createFlowIcon, createMinimizeIcon, createTrackIcon, createTrashIcon, createTriggerIcon } from "./icons";
-import { FILTER_COMPONENTS_PLACEHOLDER, MAIN_AREA_PLACEHOLDER } from "./strings";
+import { createComponentIcon, createTrackIcon, createTriggerIcon, createFlowIcon } from "./icons";
+import { MAIN_AREA_PLACEHOLDER } from "./strings";
+import { UIManager, UIManagerCallbacks } from "./UIManager";
 
 type ComponentGroup = {
     sidebarItem: HTMLDivElement;
@@ -20,298 +20,33 @@ type SelectedEvent = {
 }
 
 export class UILogger implements Logger {
-    private loggerPanel: HTMLDivElement;
-    private headerElement: HTMLDivElement | undefined;
-    private contentContainer: HTMLDivElement | undefined;
-    private sidebar: HTMLDivElement | undefined;
-    private mainArea: HTMLDivElement | undefined;
+    private uiManager: UIManager;
     private componentGroups: Map<string, ComponentGroup> = new Map();
     private selectedComponent: string | null = null;
     private selectedEvent: SelectedEvent | null = null;
-    private dragHandle!: HTMLDivElement;
-    private isDragging = false;
-    private startY = 0;
-    private startHeight = 0;
-    private sidebarResizeHandle!: HTMLDivElement;
-    private isSidebarResizing = false;
-    private startX = 0;
-    private startSidebarWidth = 0;
-    private leftResizeHandle!: HTMLDivElement;
-    private isLeftResizing = false;
-    private startLeftX = 0;
-    private startPanelWidth = 0;
-    private isMinimized = false;
-    private savedHeight = 250;
     private showTrackedEvents = true;
     private showTriggeredEvents = true;
     private componentFilter = "";
-    private searchDebounceTimer: number | null = null;
 
     constructor() {
-        this.loggerPanel = document.createElement("div");
-        this.loggerPanel.id = "vue-flow-vis-logger-panel";
-        this.loggerPanel.style.position = "fixed";
-        this.loggerPanel.style.bottom = "1em";
-        this.loggerPanel.style.right = "1em";
-        this.loggerPanel.style.width = "50vw";
-        this.loggerPanel.style.height = "450px";
-        this.loggerPanel.style.display = "flex";
-        this.loggerPanel.style.flexDirection = "column";
-        this.loggerPanel.style.backgroundColor = "#fff";
-        this.loggerPanel.style.border = "1px solid #ccc";
-        this.loggerPanel.style.zIndex = "9999";
-        this.loggerPanel.style.fontFamily = "Arial, sans-serif";
-        this.loggerPanel.style.resize = "none";
-        
-        this.createDragHandle();
-        this.createLeftResizeHandle();
-        this.createHeader();
-        this.createContentContainer();
-        this.createSidebarResizeHandle();
-        document.body.appendChild(this.loggerPanel);
-        this.setupEventListeners();
-    }
-
-    private createDragHandle(): void {
-        this.dragHandle = document.createElement("div");
-        this.dragHandle.id = "vue-flow-vis-drag-handle";
-        this.dragHandle.style.position = "absolute";
-        this.dragHandle.style.top = "0";
-        this.dragHandle.style.left = "0";
-        this.dragHandle.style.right = "0";
-        this.dragHandle.style.height = "8px";
-        this.dragHandle.style.cursor = "ns-resize";
-        this.dragHandle.style.backgroundColor = "transparent";
-        this.dragHandle.style.borderTop = "2px solid transparent";
-        this.dragHandle.style.transition = "border-color 0.2s ease";
-        this.dragHandle.style.zIndex = "2";
-        
-        this.dragHandle.addEventListener("mouseenter", () => {
-            this.dragHandle.style.borderTopColor = "#007acc";
-        });
-        
-        this.dragHandle.addEventListener("mouseleave", () => {
-            if (!this.isDragging) {
-                this.dragHandle.style.borderTopColor = "transparent";
-            }
-        });
-        
-        this.loggerPanel.appendChild(this.dragHandle);
-    }
-
-    private createLeftResizeHandle(): void {
-        this.leftResizeHandle = document.createElement("div");
-        this.leftResizeHandle.id = "vue-flow-vis-left-resize-handle";
-        this.leftResizeHandle.style.position = "absolute";
-        this.leftResizeHandle.style.top = "0";
-        this.leftResizeHandle.style.left = "0";
-        this.leftResizeHandle.style.bottom = "0";
-        this.leftResizeHandle.style.width = "8px";
-        this.leftResizeHandle.style.cursor = "ew-resize";
-        this.leftResizeHandle.style.backgroundColor = "transparent";
-        this.leftResizeHandle.style.borderLeft = "2px solid transparent";
-        this.leftResizeHandle.style.transition = "border-color 0.2s ease";
-        this.leftResizeHandle.style.zIndex = "2";
-        
-        this.leftResizeHandle.addEventListener("mouseenter", () => {
-            this.leftResizeHandle.style.borderLeftColor = "#007acc";
-        });
-        
-        this.leftResizeHandle.addEventListener("mouseleave", () => {
-            if (!this.isLeftResizing) {
-                this.leftResizeHandle.style.borderLeftColor = "transparent";
-            }
-        });
-        
-        this.loggerPanel.appendChild(this.leftResizeHandle);
-    }
-
-    private createHeader(): void {
-        this.headerElement = document.createElement("div");
-        this.headerElement.id = "vue-flow-vis-header";
-        this.headerElement.style.display = "flex";
-        this.headerElement.style.justifyContent = "space-between";
-        this.headerElement.style.alignItems = "center";
-        this.headerElement.style.position = "relative";
-        this.headerElement.style.zIndex = "1";
-        this.headerElement.style.backgroundColor = "#f5f5f5";
-        this.headerElement.style.padding = "0.3em 0.5em";
-        this.headerElement.style.borderBottom = "1px solid #ddd";
-        this.headerElement.style.userSelect = "none";
-
-        const titleContainer = document.createElement("div");
-        titleContainer.id = "vue-flow-vis-title-container";
-        titleContainer.style.display = "flex";
-        titleContainer.style.alignItems = "center";
-        titleContainer.style.gap = "0.5em";
-        titleContainer.style.alignContent = "center";
-
-        const pluginLink = document.createElement("a");
-        pluginLink.id = "vue-flow-vis-plugin-link";
-        pluginLink.href = PLUGIN_URL;
-        pluginLink.target = "_blank";
-        pluginLink.style.textDecoration = "none";
-        pluginLink.style.color = "black";
-        titleContainer.appendChild(pluginLink);
-
-        const icon = document.createElement("span");
-        icon.id = "vue-flow-vis-header-icon";
-        icon.innerHTML = createFlowIcon(18);
-        icon.style.color = "black";
-        icon.style.position = "relative";
-        icon.style.top = "1px";
-        pluginLink.appendChild(icon);
-        icon.onmouseover = (): void => {
-            icon.style.color = "#00cc96ff";
-        };
-        icon.onmouseout = (): void => {
-            icon.style.color = "black";
-        };
-
-        const title = document.createElement("span");
-        title.id = "vue-flow-vis-title";
-        title.textContent = "vue-flow-vis";
-        title.style.fontFamily = "monospace";
-        title.style.paddingBottom = "2px";
-        titleContainer.appendChild(title);
-
-        const buttonContainer = document.createElement("div");
-        buttonContainer.id = "vue-flow-vis-button-container";
-        buttonContainer.style.display = "flex";
-        buttonContainer.style.gap = "0.5em";
-        buttonContainer.style.alignItems = "center";
-
-        const minimizeButton = document.createElement("button");
-        minimizeButton.id = "vue-flow-vis-minimize-button";
-        minimizeButton.innerHTML = createMinimizeIcon(14);
-        minimizeButton.style.color = "black";
-        minimizeButton.style.border = "none";
-        minimizeButton.style.cursor = "pointer";
-        minimizeButton.style.backgroundColor = "transparent";
-        minimizeButton.style.padding = "0";
-        minimizeButton.title = "Minimize panel";
-        minimizeButton.classList.add("minimize-button");
-        minimizeButton.onclick = (): void => this.toggleMinimize();
-
-        const clearButton = document.createElement("button");
-        clearButton.id = "vue-flow-vis-clear-button";
-        clearButton.innerHTML = createTrashIcon(14);
-        clearButton.style.color = "#000";
-        clearButton.style.border = "none";
-        clearButton.style.cursor = "pointer";
-        clearButton.style.backgroundColor = "transparent";
-        clearButton.style.padding = "0";
-        clearButton.title = "Clear log";
-        clearButton.onclick = (): void => this.clear();
-
-        buttonContainer.appendChild(clearButton);
-        buttonContainer.appendChild(minimizeButton);
-
-        this.headerElement.appendChild(titleContainer);
-        this.headerElement.appendChild(buttonContainer);
-        this.loggerPanel.appendChild(this.headerElement);
-    }
-
-    private createContentContainer(): void {
-        this.contentContainer = document.createElement("div");
-        this.contentContainer.id = "vue-flow-vis-content-container";
-        this.contentContainer.style.flex = "1";
-        this.contentContainer.style.display = "flex";
-        this.contentContainer.style.flexDirection = "row";
-        this.contentContainer.style.overflow = "hidden";
-        
-        this.createSidebar();
-        this.createMainArea();
-        
-        this.loggerPanel.appendChild(this.contentContainer);
-    }
-
-    private createSidebar(): void {
-        this.sidebar = document.createElement("div");
-        this.sidebar.id = "vue-flow-vis-sidebar";
-        this.sidebar.style.width = "200px";
-        this.sidebar.style.minWidth = "150px";
-        this.sidebar.style.borderRight = "1px solid #ddd";
-        this.sidebar.style.backgroundColor = "#f9f9f9";
-        this.sidebar.style.position = "relative";
-        this.sidebar.style.display = "flex";
-        this.sidebar.style.flexDirection = "column";
-
-        // Create sidebar header with search input
-        const sidebarHeader = document.createElement("div");
-        sidebarHeader.id = "vue-flow-vis-sidebar-header";
-        sidebarHeader.style.padding = "0.5em";
-        sidebarHeader.style.borderBottom = "1px solid #ddd";
-        sidebarHeader.style.backgroundColor = "#f5f5f5";
-        sidebarHeader.style.flexShrink = "0";
-
-        const searchInput = document.createElement("input");
-        searchInput.id = "vue-flow-vis-component-search";
-        searchInput.type = "text";
-        searchInput.placeholder = FILTER_COMPONENTS_PLACEHOLDER;
-        searchInput.style.width = "100%";
-        searchInput.style.padding = "0.4em";
-        searchInput.style.fontFamily = 'monospace';
-        searchInput.style.border = "1px solid #ddd";
-        searchInput.style.borderRadius = "4px";
-        searchInput.style.fontSize = "0.9em";
-        searchInput.style.fontFamily = "Arial, sans-serif";
-        searchInput.style.boxSizing = "border-box";
-        searchInput.style.outline = "none";
-
-        // Add focus styles
-        searchInput.addEventListener("focus", () => {
-            searchInput.style.borderColor = "#007acc";
-        });
-
-        searchInput.addEventListener("blur", () => {
-            searchInput.style.borderColor = "#ddd";
-        });
-
-        // Add debounced search functionality
-        searchInput.addEventListener("input", () => {
-            if (this.searchDebounceTimer !== null) {
-                clearTimeout(this.searchDebounceTimer);
-            }
-            
-            this.searchDebounceTimer = window.setTimeout(() => {
-                this.componentFilter = searchInput.value.toLowerCase().trim();
+        const callbacks: UIManagerCallbacks = {
+            onClear: () => this.clear(),
+            onMinimizeToggle: () => {},
+            onComponentFilterChange: (filter: string) => {
+                this.componentFilter = filter;
                 this.filterComponents();
-                this.searchDebounceTimer = null;
-            }, 300);
-        });
-
-        sidebarHeader.appendChild(searchInput);
-        this.sidebar.appendChild(sidebarHeader);
-
-        // Create scrollable content area for component list
-        const sidebarContent = document.createElement("div");
-        sidebarContent.id = "vue-flow-vis-sidebar-content";
-        sidebarContent.style.flex = "1";
-        sidebarContent.style.overflowY = "auto";
-        sidebarContent.style.overflowX = "hidden";
-        this.sidebar.appendChild(sidebarContent);
-
-        this.contentContainer!.appendChild(this.sidebar);
-    }
-
-    private createMainArea(): void {
-        this.mainArea = document.createElement("div");
-        this.mainArea.id = "vue-flow-vis-main-area";
-        this.mainArea.style.flex = "1";
-        this.mainArea.style.overflow = "hidden";
-        this.mainArea.style.display = "flex";
-        this.mainArea.style.flexDirection = "column";
+            }
+        };
         
+        this.uiManager = new UIManager(callbacks);
         this.showPlaceholderText();
-        
-        this.contentContainer!.appendChild(this.mainArea);
     }
 
     private showPlaceholderText(): void {
-        if (!this.mainArea) return;
+        const mainArea = this.uiManager.getMainArea();
+        if (!mainArea) return;
         
-        this.mainArea.innerHTML = "";
+        mainArea.innerHTML = "";
         const placeholder = document.createElement("div");
         placeholder.id = "vue-flow-vis-placeholder";
         placeholder.style.display = "flex";
@@ -339,117 +74,12 @@ export class UILogger implements Logger {
         
         placeholder.appendChild(icon);
         placeholder.appendChild(text);
-        this.mainArea.appendChild(placeholder);
-    }
-
-    private createSidebarResizeHandle(): void {
-        this.sidebarResizeHandle = document.createElement("div");
-        this.sidebarResizeHandle.id = "vue-flow-vis-sidebar-resize-handle";
-        this.sidebarResizeHandle.style.position = "absolute";
-        this.sidebarResizeHandle.style.top = "0";
-        this.sidebarResizeHandle.style.right = "-2px";
-        this.sidebarResizeHandle.style.bottom = "0";
-        this.sidebarResizeHandle.style.width = "4px";
-        this.sidebarResizeHandle.style.cursor = "ew-resize";
-        this.sidebarResizeHandle.style.backgroundColor = "transparent";
-        this.sidebarResizeHandle.style.borderRight = "2px solid transparent";
-        this.sidebarResizeHandle.style.transition = "border-color 0.2s ease";
-        this.sidebarResizeHandle.style.zIndex = "3";
-        
-        this.sidebarResizeHandle.addEventListener("mouseenter", () => {
-            this.sidebarResizeHandle.style.borderRightColor = "#007acc";
-        });
-        
-        this.sidebarResizeHandle.addEventListener("mouseleave", () => {
-            if (!this.isSidebarResizing) {
-                this.sidebarResizeHandle.style.borderRightColor = "transparent";
-            }
-        });
-        
-        this.sidebar!.appendChild(this.sidebarResizeHandle);
-    }
-
-    private setupEventListeners(): void {
-        this.dragHandle.addEventListener("mousedown", this.onMouseDown.bind(this));
-        this.leftResizeHandle.addEventListener("mousedown", this.onLeftMouseDown.bind(this));
-        this.sidebarResizeHandle.addEventListener("mousedown", this.onSidebarMouseDown.bind(this));
-        document.addEventListener("mousemove", this.onMouseMove.bind(this));
-        document.addEventListener("mouseup", this.onMouseUp.bind(this));
-    }
-
-    private onMouseDown(event: MouseEvent): void {
-        this.isDragging = true;
-        this.startY = event.clientY;
-        this.startHeight = parseInt(window.getComputedStyle(this.loggerPanel).height, 10);
-        this.dragHandle.style.borderTopColor = "#007acc";
-        event.preventDefault();
-    }
-
-    private onLeftMouseDown(event: MouseEvent): void {
-        this.isLeftResizing = true;
-        this.startLeftX = event.clientX;
-        this.startPanelWidth = this.loggerPanel.offsetWidth;
-        this.leftResizeHandle.style.borderLeftColor = "#007acc";
-        event.preventDefault();
-        event.stopPropagation();
-    }
-
-    private onSidebarMouseDown(event: MouseEvent): void {
-        this.isSidebarResizing = true;
-        this.startX = event.clientX;
-        this.startSidebarWidth = this.sidebar!.offsetWidth;
-        this.sidebarResizeHandle.style.borderRightColor = "#007acc";
-        event.preventDefault();
-        event.stopPropagation();
-    }
-
-
-    private onMouseMove(event: MouseEvent): void {
-        if (this.isDragging) {
-            const deltaY = this.startY - event.clientY;
-            const newHeight = this.startHeight + deltaY;
-            const minHeight = 150;
-            const maxHeight = window.innerHeight * 0.8;
-            
-            const clampedHeight = Math.max(minHeight, Math.min(maxHeight, newHeight));
-            this.loggerPanel.style.height = `${clampedHeight}px`;
-            this.loggerPanel.style.maxHeight = `${clampedHeight}px`;
-        }
-        
-        if (this.isLeftResizing) {
-            const deltaX = this.startLeftX - event.clientX;
-            const newWidth = this.startPanelWidth + deltaX;
-            const minWidth = 400;
-            const maxWidth = window.innerWidth * 0.95;
-            
-            const clampedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
-            this.loggerPanel.style.width = `${clampedWidth}px`;
-        }
-        
-        if (this.isSidebarResizing) {
-            const deltaX = event.clientX - this.startX;
-            const newWidth = this.startSidebarWidth + deltaX;
-            const minWidth = 150;
-            const maxWidth = this.loggerPanel.offsetWidth * 0.2;
-            
-            const clampedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
-            this.sidebar!.style.width = `${clampedWidth}px`;
-        }
-    }
-
-    private onMouseUp(): void {
-        this.isDragging = false;
-        this.dragHandle.style.borderTopColor = "transparent";
-        
-        this.isLeftResizing = false;
-        this.leftResizeHandle.style.borderLeftColor = "transparent";
-        
-        this.isSidebarResizing = false;
-        this.sidebarResizeHandle.style.borderRightColor = "transparent";
+        mainArea.appendChild(placeholder);
     }
 
     private getOrCreateComponentGroup(componentName: string, componentPath?: string): ComponentGroup {
-        if (!this.sidebar) {
+        const sidebarContent = this.uiManager.getSidebarContent();
+        if (!sidebarContent) {
             return {
                 sidebarItem: document.createElement("div"),
                 events: [],
@@ -489,7 +119,6 @@ export class UILogger implements Logger {
             this.selectComponent(componentName);
         };
 
-        const sidebarContent = this.sidebar.querySelector("#vue-flow-vis-sidebar-content") as HTMLDivElement;
         sidebarContent.appendChild(sidebarItem);
 
         const group: ComponentGroup = {
@@ -592,12 +221,13 @@ export class UILogger implements Logger {
     }
 
     private displayComponentEvents(componentName: string): void {
-        if (!this.mainArea) return;
+        const mainArea = this.uiManager.getMainArea();
+        if (!mainArea) return;
 
         const group = this.componentGroups.get(componentName);
         if (!group) return;
 
-        this.mainArea.innerHTML = "";
+        mainArea.innerHTML = "";
 
         const header = document.createElement("div");
         header.id = `vue-flow-vis-component-header-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
@@ -626,7 +256,7 @@ export class UILogger implements Logger {
 
         header.appendChild(icon);
         header.appendChild(title);
-        this.mainArea.appendChild(header);
+        mainArea.appendChild(header);
 
         const contentArea = document.createElement("div");
         contentArea.id = `vue-flow-vis-content-area-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
@@ -791,7 +421,7 @@ export class UILogger implements Logger {
         eventsListArea.appendChild(scrollableContainer);
         contentArea.appendChild(eventsListArea);
 
-        this.mainArea.appendChild(contentArea);
+        mainArea.appendChild(contentArea);
         
         // Add event details area if an event is selected
         this.updateEventDetailsArea();
@@ -819,9 +449,10 @@ export class UILogger implements Logger {
     }
 
     private updateEventDetailsArea(): void {
-        if (!this.mainArea) return;
+        const mainArea = this.uiManager.getMainArea();
+        if (!mainArea) return;
 
-        const contentArea = this.mainArea.querySelector('#vue-flow-vis-content-area-' + this.selectedComponent?.replace(/[^a-zA-Z0-9]/g, '-')) as HTMLDivElement;
+        const contentArea = mainArea.querySelector('#vue-flow-vis-content-area-' + this.selectedComponent?.replace(/[^a-zA-Z0-9]/g, '-')) as HTMLDivElement;
         if (!contentArea) return;
 
         // Remove existing details area if it exists
@@ -1000,7 +631,8 @@ export class UILogger implements Logger {
     }
 
     error(error: Error, _context?: unknown): void {
-        if (!this.mainArea) {
+        const mainArea = this.uiManager.getMainArea();
+        if (!mainArea) {
             return;
         }
 
@@ -1019,65 +651,26 @@ export class UILogger implements Logger {
         errorDiv.textContent = `[${timestamp}] [Error] ${error.message}`;
         
         if (this.selectedComponent) {
-            this.mainArea.appendChild(errorDiv);
+            mainArea.appendChild(errorDiv);
         } else {
-            this.mainArea.innerHTML = "";
-            this.mainArea.appendChild(errorDiv);
+            mainArea.innerHTML = "";
+            mainArea.appendChild(errorDiv);
         }
     }
 
-    private toggleMinimize(): void {
-        if (this.isMinimized) {
-            // Restore panel
-            this.loggerPanel.style.height = `${this.savedHeight}px`;
-            this.loggerPanel.style.maxHeight = `${this.savedHeight}px`;
-            this.loggerPanel.style.minHeight = "150px";
-            this.contentContainer!.style.display = "flex";
-            this.dragHandle.style.display = "block";
-            this.leftResizeHandle.style.display = "block";
-            
-            const minimizeButton = this.headerElement!.querySelector(".minimize-button") as HTMLButtonElement;
-            minimizeButton.innerHTML = createMinimizeIcon(14);
-            minimizeButton.title = "Minimize panel";
-            
-            this.isMinimized = false;
-        } else {
-            // Minimize panel
-            this.savedHeight = parseInt(window.getComputedStyle(this.loggerPanel).height, 10);
-            this.contentContainer!.style.display = "none";
-            this.dragHandle.style.display = "none";
-            this.leftResizeHandle.style.display = "none";
-            
-            // Calculate header height after hiding content
-            const headerHeight = this.headerElement!.offsetHeight;
-            this.loggerPanel.style.height = `${headerHeight}px`;
-            this.loggerPanel.style.maxHeight = `${headerHeight}px`;
-            this.loggerPanel.style.minHeight = `${headerHeight}px`;
-            
-            const minimizeButton = this.headerElement!.querySelector(".minimize-button") as HTMLButtonElement;
-            minimizeButton.innerHTML = createExpandIcon(14);
-            minimizeButton.title = "Restore panel";
-            
-            this.isMinimized = true;
-        }
-    }
 
     private clear(): void {
-        if (!this.sidebar || !this.mainArea) {
+        const sidebarContent = this.uiManager.getSidebarContent();
+        if (!sidebarContent) {
             return;
         }
+        
         this.componentGroups.clear();
         this.selectedComponent = null;
         this.selectedEvent = null;
         this.componentFilter = "";
         
-        // Clear search input
-        const searchInput = this.sidebar.querySelector("#vue-flow-vis-component-search") as HTMLInputElement;
-        if (searchInput) {
-            searchInput.value = "";
-        }
-        
-        const sidebarContent = this.sidebar.querySelector("#vue-flow-vis-sidebar-content") as HTMLDivElement;
+        this.uiManager.clearSearchInput();
         sidebarContent.innerHTML = "";
         this.showPlaceholderText();
     }
@@ -1097,8 +690,6 @@ export class UILogger implements Logger {
     }
 
     private filterComponents(): void {
-        if (!this.sidebar) return;
-
         this.componentGroups.forEach((group, componentName) => {
             const shouldShow = this.componentFilter === "" || 
                              componentName.toLowerCase().includes(this.componentFilter);
