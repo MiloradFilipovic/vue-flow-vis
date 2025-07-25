@@ -170,7 +170,7 @@ export class UIManager {
 
         const title = document.createElement("span");
         title.id = "vue-flow-vis-title";
-        title.textContent = "vue-flow-visss";
+        title.textContent = "vue-flow-vis";
         title.style.fontFamily = "monospace";
         title.style.paddingBottom = "2px";
         titleContainer.appendChild(title);

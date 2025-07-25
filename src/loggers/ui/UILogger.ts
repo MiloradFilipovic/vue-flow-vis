@@ -3,6 +3,7 @@ import { Logger, RenderEventData } from "../../types";
 import { createComponentIcon, createTrackIcon, createTriggerIcon, createFlowIcon } from "./icons";
 import { MAIN_AREA_PLACEHOLDER } from "./strings";
 import { UIManager, UIManagerCallbacks } from "./UIManager";
+import { EventFormatter } from "./EventFormatter";
 
 type ComponentGroup = {
     sidebarItem: HTMLDivElement;
@@ -501,11 +502,11 @@ export class UILogger implements Logger {
             scrollableContent.appendChild(this.createDetailField("Operation", operation?.toUpperCase() ?? "UNKNOWN", "#007acc"));
 
             // Target Property
-            const key = this.formatKey(this.selectedEvent.eventData.event.key);
+            const key = EventFormatter.formatKey(this.selectedEvent.eventData.event.key);
             scrollableContent.appendChild(this.createDetailField("Property", key, "#333"));
 
             // Target Object
-            const target = this.formatTarget(this.selectedEvent.eventData.event.target);
+            const target = EventFormatter.formatTarget(this.selectedEvent.eventData.event.target);
             scrollableContent.appendChild(this.createDetailField("Target Object", target));
 
             // For trigger events, show old and new values
@@ -513,12 +514,12 @@ export class UILogger implements Logger {
                 const event = this.selectedEvent.eventData.event;
                 
                 if (event.oldValue !== undefined) {
-                    const oldValue = this.formatValue(event.oldValue);
+                    const oldValue = EventFormatter.formatValue(event.oldValue);
                     scrollableContent.appendChild(this.createDetailField("Previous Value", oldValue, "#cc0000"));
                 }
                 
                 if (event.newValue !== undefined) {
-                    const newValue = this.formatValue(event.newValue);
+                    const newValue = EventFormatter.formatValue(event.newValue);
                     scrollableContent.appendChild(this.createDetailField("New Value", newValue, "#00cc00"));
                 }
             }
@@ -566,60 +567,8 @@ export class UILogger implements Logger {
         return fieldDiv;
     }
 
-    private formatKey(key: unknown): string {
-        if (typeof key === 'symbol') {
-            return key.toString();
-        }
-        if (typeof key === 'string') {
-            return `"${key}"`;
-        }
-        return String(key);
-    }
 
-    private formatTarget(target: unknown): string {
-        if (!target) return 'undefined';
-        
-        try {
-            if (typeof target === 'object' && target !== null && 'constructor' in target) {
-                const constructor = (target as { constructor?: { name?: string } }).constructor;
-                if (constructor && typeof constructor.name === 'string') {
-                    return constructor.name;
-                }
-            }
-            return Object.prototype.toString.call(target).slice(8, -1);
-        } catch {
-            return 'Unknown Object';
-        }
-    }
 
-    private formatValue(value: unknown): string {
-        if (value === null) return 'null';
-        if (value === undefined) return 'undefined';
-        
-        try {
-            if (typeof value === 'string') {
-                return `"${value}"`;
-            }
-            if (typeof value === 'object' && value !== null) {
-                if (Array.isArray(value)) {
-                    return `Array(${value.length})`;
-                }
-                return JSON.stringify(value, null, 2);
-            }
-            if (typeof value === 'number' || typeof value === 'boolean') {
-                return String(value);
-            }
-            if (typeof value === 'function') {
-                return '[Function]';
-            }
-            if (typeof value === 'symbol') {
-                return value.toString();
-            }
-            return '[Object]';
-        } catch {
-            return '[Object]';
-        }
-    }
 
 
     tracked(data: RenderEventData): void {
