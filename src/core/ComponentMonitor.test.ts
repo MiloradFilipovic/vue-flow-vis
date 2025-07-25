@@ -3,36 +3,6 @@ import type { ComponentInternalInstance, DebuggerEvent } from 'vue'
 import { ComponentMonitor } from './ComponentMonitor'
 import type { Logger, RenderEventData } from '../types'
 
-// Mock the constants module
-vi.mock('../constants', () => ({
-  DEFAULT_BATCH_WINDOW: 300,
-}))
-
-// Mock the logger module
-vi.mock('../utils/logger', () => ({
-  ConsoleLogger: vi.fn().mockImplementation(() => ({
-    tracked: vi.fn(),
-    triggered: vi.fn(),
-    error: vi.fn(),
-  })),
-}))
-
-// Mock the component identifier module
-vi.mock('../utils/componentIdentifier', () => ({
-  ComponentIdentifier: {
-    extractMetadata: vi.fn().mockReturnValue({
-      name: 'TestComponent',
-      path: 'TestComponent',
-      uid: 1,
-      file: '/test/TestComponent.vue',
-      props: ['testProp'],
-      emits: ['testEvent'],
-      isSetup: true,
-      parentName: undefined,
-    }),
-  },
-}))
-
 describe('ComponentMonitor', () => {
   let mockLogger: Logger
   let mockInstance: Partial<ComponentInternalInstance>
@@ -61,7 +31,7 @@ describe('ComponentMonitor', () => {
 
   describe('constructor', () => {
     it('should use default options when none provided', () => {
-      const monitor = new ComponentMonitor()
+      const monitor = new ComponentMonitor({ logger: 'none' })
 
       expect(monitor.options.enabled).toBe(true)
       expect(monitor.options.logToTable).toBe(false)
@@ -79,6 +49,7 @@ describe('ComponentMonitor', () => {
         includeComponents: ['IncludedComponent'],
         batchLogs: false,
         batchWindow: 500,
+        logger: 'none' as const,
       }
 
       const monitor = new ComponentMonitor(customOptions)
@@ -93,7 +64,7 @@ describe('ComponentMonitor', () => {
 
     it('should set up custom logger when provided', () => {
       const customLogger = mockLogger
-      const monitor = new ComponentMonitor({ customLogger })
+      const monitor = new ComponentMonitor({ logger: 'none', customLogger })
 
       expect(monitor.options.customLogger).toBe(customLogger)
     })
@@ -103,6 +74,7 @@ describe('ComponentMonitor', () => {
       const onRenderTriggered = vi.fn()
 
       const monitor = new ComponentMonitor({
+        logger: 'none',
         onRenderTracked,
         onRenderTriggered,
       })
@@ -114,7 +86,7 @@ describe('ComponentMonitor', () => {
 
   describe('shouldMonitorComponent', () => {
     it('should return true for all components when no filters are set', () => {
-      const monitor = new ComponentMonitor()
+      const monitor = new ComponentMonitor({ logger: 'none' })
 
       expect(monitor.shouldMonitorComponent('TestComponent')).toBe(true)
       expect(monitor.shouldMonitorComponent('AnotherComponent')).toBe(true)
@@ -122,6 +94,7 @@ describe('ComponentMonitor', () => {
 
     it('should only monitor included components when include list is provided', () => {
       const monitor = new ComponentMonitor({
+        logger: 'none',
         includeComponents: ['TestComponent', 'AllowedComponent'],
       })
 
@@ -132,6 +105,7 @@ describe('ComponentMonitor', () => {
 
     it('should exclude specified components when exclude list is provided', () => {
       const monitor = new ComponentMonitor({
+        logger: 'none',
         excludeComponents: ['ExcludedComponent', 'BlockedComponent'],
       })
 
@@ -142,6 +116,7 @@ describe('ComponentMonitor', () => {
 
     it('should prioritize include list over exclude list', () => {
       const monitor = new ComponentMonitor({
+        logger: 'none',
         includeComponents: ['TestComponent'],
         excludeComponents: ['TestComponent', 'OtherComponent'],
       })
@@ -152,7 +127,7 @@ describe('ComponentMonitor', () => {
     })
 
     it('should exclude external components from node_modules', () => {
-      const monitor = new ComponentMonitor()
+      const monitor = new ComponentMonitor({ logger: 'none' })
       
       const externalInstance = {
         type: { 
@@ -171,7 +146,7 @@ describe('ComponentMonitor', () => {
     })
 
     it('should not monitor components without __file property', () => {
-      const monitor = new ComponentMonitor()
+      const monitor = new ComponentMonitor({ logger: 'none' })
       
       const instanceWithoutFile = {
         type: {}
@@ -182,6 +157,7 @@ describe('ComponentMonitor', () => {
 
     it('should include external components when explicitly included', () => {
       const monitor = new ComponentMonitor({
+        logger: 'none',
         includeComponents: ['VueRouter']
       })
       
@@ -198,6 +174,7 @@ describe('ComponentMonitor', () => {
     describe('wildcard pattern matching', () => {
       it('should support wildcard patterns in excludeComponents', () => {
         const monitor = new ComponentMonitor({
+          logger: 'none',
           excludeComponents: ['El*', '*Button', '*Component*']
         })
 
@@ -214,6 +191,7 @@ describe('ComponentMonitor', () => {
 
       it('should support wildcard patterns in includeComponents', () => {
         const monitor = new ComponentMonitor({
+          logger: 'none',
           includeComponents: ['My*', '*Form', '*Component*']
         })
 
@@ -230,6 +208,7 @@ describe('ComponentMonitor', () => {
 
       it('should handle exact matches without wildcards', () => {
         const monitor = new ComponentMonitor({
+          logger: 'none',
           excludeComponents: ['ExactComponent']
         })
 
@@ -240,6 +219,7 @@ describe('ComponentMonitor', () => {
 
       it('should handle multiple wildcards in single pattern', () => {
         const monitor = new ComponentMonitor({
+          logger: 'none',
           excludeComponents: ['*Test*Component*']
         })
 
@@ -254,6 +234,7 @@ describe('ComponentMonitor', () => {
 
       it('should be case-insensitive for wildcard patterns', () => {
         const monitor = new ComponentMonitor({
+          logger: 'none',
           excludeComponents: ['el*', '*button', '*Component*']
         })
 
@@ -270,6 +251,7 @@ describe('ComponentMonitor', () => {
 
       it('should be case-insensitive for exact matches', () => {
         const monitor = new ComponentMonitor({
+          logger: 'none',
           excludeComponents: ['ExactComponent']
         })
 
@@ -281,6 +263,7 @@ describe('ComponentMonitor', () => {
 
       it('should handle empty patterns gracefully', () => {
         const monitor = new ComponentMonitor({
+          logger: 'none',
           excludeComponents: ['', '*', '**']
         })
 
@@ -290,6 +273,7 @@ describe('ComponentMonitor', () => {
 
       it('should handle special regex characters in patterns', () => {
         const monitor = new ComponentMonitor({
+          logger: 'none',
           excludeComponents: ['Component[0-9]', 'Button+', 'Form.vue']
         })
 
@@ -302,6 +286,7 @@ describe('ComponentMonitor', () => {
 
       it('should prioritize include patterns over exclude patterns', () => {
         const monitor = new ComponentMonitor({
+          logger: 'none',
           includeComponents: ['My*'],
           excludeComponents: ['*Component']
         })
@@ -317,6 +302,7 @@ describe('ComponentMonitor', () => {
   describe('logRenderEvent', () => {
     it('should not log when monitor is disabled', () => {
       const monitor = new ComponentMonitor({ 
+        logger: 'none',
         enabled: false,
         customLogger: mockLogger 
       })
@@ -340,6 +326,7 @@ describe('ComponentMonitor', () => {
 
     it('should log tracked events when enabled', () => {
       const monitor = new ComponentMonitor({ 
+        logger: 'none',
         enabled: true,
         customLogger: mockLogger 
       })
@@ -368,6 +355,7 @@ describe('ComponentMonitor', () => {
 
     it('should log triggered events when enabled', () => {
       const monitor = new ComponentMonitor({ 
+        logger: 'none',
         enabled: true,
         customLogger: mockLogger 
       })
@@ -396,6 +384,7 @@ describe('ComponentMonitor', () => {
 
     it('should remove instance reference from logged data', () => {
       const monitor = new ComponentMonitor({ 
+        logger: 'none',
         enabled: true,
         customLogger: mockLogger 
       })
@@ -422,6 +411,7 @@ describe('ComponentMonitor', () => {
       const onRenderTriggered = vi.fn()
 
       const monitor = new ComponentMonitor({
+        logger: 'none',
         enabled: true,
         customLogger: mockLogger,
         onRenderTracked,
@@ -464,6 +454,7 @@ describe('ComponentMonitor', () => {
       }
 
       const monitor = new ComponentMonitor({ 
+        logger: 'none',
         enabled: true,
         customLogger: throwingLogger 
       })
@@ -493,6 +484,7 @@ describe('ComponentMonitor', () => {
 
     it('should handle missing instance gracefully', () => {
       const monitor = new ComponentMonitor({ 
+        logger: 'none',
         enabled: true,
         customLogger: mockLogger 
       })
