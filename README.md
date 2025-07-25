@@ -19,9 +19,7 @@ Monitor which components re-render, what triggers the updates, and track reactiv
 
 ![image info](./static/README_screen.png)
 
-In this example, user typing `john` caused 28 render events to be triggered..
-
-Additionally, 30 render events from `Background` components were logged.
+In this example, user typing `john` caused 28 render events in `Login` component to be triggered.
 
 ## Installation
 
