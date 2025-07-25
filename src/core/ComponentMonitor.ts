@@ -37,7 +37,7 @@ export class ComponentMonitor {
       batchWindow: options.batchWindow ?? DEFAULT_BATCH_WINDOW,
       onRenderTracked: (): void => {},
       onRenderTriggered: (): void => {},
-      logger: 'console',
+      logger: 'ui',
       customLogger: undefined,
       ...options
     }

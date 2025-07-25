@@ -1,6 +1,7 @@
 # `vue-flow-vis`
 
-A Vue 3 development plugin that provides real-time insights into component rendering behavior. Monitor which components re-render, what triggers the updates, and track reactive dependencies using Vue's built-in debugging hooks ([`onRenderTriggered`](https://vuejs.org/api/composition-api-lifecycle.html#onrendertriggered) and [`onRenderTracked`](https://vuejs.org/api/composition-api-lifecycle.html#onrendertracked)).
+**0-dependency Vue reactivity tracker.**
+Monitor which components re-render, what triggers the updates, and track reactive dependencies using Vue's built-in debugging hooks ([`onRenderTriggered`](https://vuejs.org/api/composition-api-lifecycle.html#onrendertriggered) and [`onRenderTracked`](https://vuejs.org/api/composition-api-lifecycle.html#onrendertracked)).
 
 ![NPM Version](https://img.shields.io/npm/v/vue-flow-vis?style=for-the-badge&color=red)
 ![NPM Downloads](https://img.shields.io/npm/dw/vue-flow-vis?style=for-the-badge&color=red)
@@ -18,7 +19,7 @@ A Vue 3 development plugin that provides real-time insights into component rende
 
 ![image info](./static/README_screen.png)
 
-In this example, a user interaction triggered the `Logo` component to re-render due to a change in the `size` reactive property.
+In this example, user typing `john` caused 28 render events to be triggered..
 
 Additionally, 30 render events from `Background` components were logged.
 
@@ -29,7 +30,7 @@ npm install vue-flow-vis --save-dev
 # or
 yarn add vue-flow-vis --dev
 # or
-pnpm add vue-flow-vis --dev
+pnpm install vue-flow-vis --dev
 ```
 
 ## Quick Start
@@ -48,7 +49,7 @@ app.use(FlowVisPlugin)
 app.mount('#app')
 ```
 
-That's it! The plugin will automatically start monitoring all your components.
+The plugin will automatically start monitoring all your components.
 
 More examples can be found in [examples](./examples) directory.
 
@@ -59,6 +60,7 @@ The plugin accepts a configuration object with the following options:
 ```typescript
 type FlowVisOptions = {
   enabled?: boolean             // Enable/disable monitoring (default: true)
+  logger?: 'console' | 'ui' | 'none'  // Logger type (default: 'ui')
   logToTable?: boolean          // Use console.table for output (default: false)
   excludeComponents?: string[]  // Components to exclude from monitoring
   includeComponents?: string[]  // Only monitor these components (overrides exclude)
@@ -66,26 +68,27 @@ type FlowVisOptions = {
   batchWindow?: number          // Delay in ms before flushing batched logs (default: 500)
   onRenderTracked?: (data: RenderEventData) => void   // Custom callback for tracked events
   onRenderTriggered?: (data: RenderEventData) => void // Custom callback for triggered events
-  logger?: 'console' | 'ui' | 'none'  // Logger type (default: 'console')
   customLogger?: Logger         // Custom logger implementation (overrides logger option)
 }
 ```
 
-### Logger Options
+### Loggers
 
 The plugin provides three built-in logger types:
 
-**Console Logger (default)**
-```typescript
-app.use(FlowVisPlugin, { logger: 'console' })
-```
-Outputs to browser console with optional batching and table formatting.
-
-**UI Logger**
+**UI Logger (default)**
 ```typescript
 app.use(FlowVisPlugin, { logger: 'ui' })
 ```
 Shows an in-page resizable panel with component event details.
+Offers best UX but event details rendering is still WIP.
+
+**Console Logger**
+```typescript
+app.use(FlowVisPlugin, { logger: 'console' })
+```
+Outputs to browser console with optional batching and table formatting.
+Logs the original Vue debugger event (best for deep debugging).
 
 **No Logger**
 ```typescript
