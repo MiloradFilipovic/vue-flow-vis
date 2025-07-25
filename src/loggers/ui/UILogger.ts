@@ -4,6 +4,7 @@ import { createComponentIcon, createTrackIcon, createTriggerIcon, createFlowIcon
 import { MAIN_AREA_PLACEHOLDER } from "./strings";
 import { UIManager, UIManagerCallbacks } from "./UIManager";
 import { EventFormatter } from "./EventFormatter";
+import { theme } from "./theme";
 
 type ComponentGroup = {
     sidebarItem: HTMLDivElement;
@@ -55,23 +56,23 @@ export class UILogger implements Logger {
         placeholder.style.alignItems = "center";
         placeholder.style.justifyContent = "center";
         placeholder.style.height = "100%";
-        placeholder.style.color = "#666";
-        placeholder.style.fontFamily = "Arial, sans-serif";
+        placeholder.style.color = theme.colors.textMuted;
+        placeholder.style.fontFamily = theme.fonts.primary;
         placeholder.style.textAlign = "center";
         
         const icon = document.createElement("div");
         icon.id = "vue-flow-vis-placeholder-icon";
         icon.innerHTML = createFlowIcon(32);
-        icon.style.color = "#007acc";
-        icon.style.opacity = "0.35";
-        icon.style.marginBottom = "0.5em";
+        icon.style.color = theme.colors.primary;
+        icon.style.opacity = theme.opacity.disabled;
+        icon.style.marginBottom = theme.spacing.md;
         
         const text = document.createElement("p");
         text.id = "vue-flow-vis-placeholder-text";
         text.textContent = MAIN_AREA_PLACEHOLDER;
-        text.style.fontFamily = 'monospace';
+        text.style.fontFamily = theme.fonts.primary;
         text.style.margin = "0";
-        text.style.fontSize = "0.9em";
+        text.style.fontSize = theme.fontSizes.sm;
         
         placeholder.appendChild(icon);
         placeholder.appendChild(text);
@@ -95,24 +96,24 @@ export class UILogger implements Logger {
         const sidebarItem = document.createElement("div");
         sidebarItem.id = `vue-flow-vis-sidebar-item-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         sidebarItem.style.display = "flex";
-        sidebarItem.style.padding = "0.75em";
+        sidebarItem.style.padding = theme.spacing.lg;
         sidebarItem.style.cursor = "pointer";
-        sidebarItem.style.gap = "0.5em";
-        sidebarItem.style.borderBottom = "1px solid #ddd";
+        sidebarItem.style.gap = theme.spacing.md;
+        sidebarItem.style.borderBottom = `${theme.borderWidths.thin} solid ${theme.colors.border}`;
         sidebarItem.style.userSelect = "none";
-        sidebarItem.style.fontFamily = "monospace";
-        sidebarItem.style.fontSize = "0.9em";
-        sidebarItem.style.transition = "background-color 0.2s";
+        sidebarItem.style.fontFamily = theme.fonts.primary;
+        sidebarItem.style.fontSize = theme.fontSizes.sm;
+        sidebarItem.style.transition = `background-color ${theme.transitions.normal}`;
 
         sidebarItem.onmouseenter = (): void => {
             if (this.selectedComponent !== componentName) {
-                sidebarItem.style.backgroundColor = "#e9e9e9";
+                sidebarItem.style.backgroundColor = theme.colors.backgroundHover;
             }
         };
 
         sidebarItem.onmouseleave = (): void => {
             if (this.selectedComponent !== componentName) {
-                sidebarItem.style.backgroundColor = "transparent";
+                sidebarItem.style.backgroundColor = theme.colors.transparent;
             }
         };
 
@@ -142,9 +143,9 @@ export class UILogger implements Logger {
         const icon = document.createElement("span");
         icon.id = `vue-flow-vis-sidebar-icon-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         icon.innerHTML = createComponentIcon(14);
-        icon.style.color = "#007acc";
+        icon.style.color = theme.colors.primary;
         icon.style.position = "relative";
-        icon.style.top = "1px";
+        icon.style.top = theme.positioning.iconOffset;
         icon.style.flexShrink = "0";
 
         const nameContainer = document.createElement("div");
@@ -152,7 +153,7 @@ export class UILogger implements Logger {
         nameContainer.style.display = "flex";
         nameContainer.style.flex = "1";
         nameContainer.style.flexDirection = "column";
-        nameContainer.style.gap = "2px";
+        nameContainer.style.gap = theme.positioning.iconOffset2;
         nameContainer.style.overflow = "hidden";
 
         const nameSpan = document.createElement("div");
@@ -166,8 +167,8 @@ export class UILogger implements Logger {
         const countSpan = document.createElement("div");
         countSpan.id = `vue-flow-vis-count-span-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         countSpan.textContent = `${group.eventCount} events`;
-        countSpan.style.fontSize = "0.8em";
-        countSpan.style.color = "#666";
+        countSpan.style.fontSize = theme.fontSizes.xs;
+        countSpan.style.color = theme.colors.textMuted;
 
         nameContainer.appendChild(nameSpan);
         nameContainer.appendChild(countSpan);
@@ -215,7 +216,7 @@ export class UILogger implements Logger {
         this.selectedEvent = null; // Clear selected event when switching components
         const currentGroup = this.componentGroups.get(componentName);
         if (currentGroup) {
-            currentGroup.sidebarItem.style.backgroundColor = "#e9e9e9";
+            currentGroup.sidebarItem.style.backgroundColor = theme.colors.backgroundHover;
         }
 
         this.displayComponentEvents(componentName);
@@ -233,27 +234,27 @@ export class UILogger implements Logger {
         const header = document.createElement("div");
         header.id = `vue-flow-vis-component-header-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         header.style.display = "flex";
-        header.style.padding = "0.3em 0.5em";
-        header.style.borderBottom = "1px solid #ddd";
+        header.style.padding = `${theme.spacing.sm} ${theme.spacing.md}`;
+        header.style.borderBottom = `${theme.borderWidths.thin} solid ${theme.colors.border}`;
         header.style.flexShrink = "0";
 
         const icon = document.createElement("span");
         icon.id = `vue-flow-vis-component-icon-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         icon.innerHTML = createComponentIcon(14);
-        icon.style.color = "#007acc";
-        icon.style.marginRight = "0.5em";
+        icon.style.color = theme.colors.primary;
+        icon.style.marginRight = theme.spacing.md;
         icon.style.position = "relative";
-        icon.style.top = "2px";
+        icon.style.top = theme.positioning.iconOffset2;
 
         const title = document.createElement("h3");
         title.id = `vue-flow-vis-component-title-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         const displayText = group.componentPath || componentName;
         title.textContent = `${displayText}`;
         title.style.margin = "0";
-        title.style.fontFamily = "monospace";
-        title.style.fontSize = "1em";
+        title.style.fontFamily = theme.fonts.primary;
+        title.style.fontSize = theme.fontSizes.base;
         title.style.position = "relative";
-        title.style.top = "1px";
+        title.style.top = theme.positioning.iconOffset;
 
         header.appendChild(icon);
         header.appendChild(title);
@@ -274,36 +275,36 @@ export class UILogger implements Logger {
 
         const eventsHeader = document.createElement("div");
         eventsHeader.id = `vue-flow-vis-events-header-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
-        eventsHeader.style.margin = "0 0 0.5em 0";
+        eventsHeader.style.margin = `0 0 ${theme.spacing.md} 0`;
         eventsHeader.style.display = "flex";
         eventsHeader.style.justifyContent = "end";
-        eventsHeader.style.padding = "0.3em 0.5em";
-        eventsHeader.style.borderBottom = "1px solid #ddd";
-        eventsHeader.style.gap = "0.5em";
+        eventsHeader.style.padding = `${theme.spacing.sm} ${theme.spacing.md}`;
+        eventsHeader.style.borderBottom = `${theme.borderWidths.thin} solid ${theme.colors.border}`;
+        eventsHeader.style.gap = theme.spacing.md;
 
         const triggerButton = document.createElement("button");
         triggerButton.id = `vue-flow-vis-trigger-button-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         triggerButton.innerHTML = createTriggerIcon(14);
-        triggerButton.style.color = this.showTriggeredEvents ? "#ff9800" : "#ccc";
+        triggerButton.style.color = this.showTriggeredEvents ? theme.colors.triggered : theme.colors.textDisabled;
         triggerButton.style.border = "none";
         triggerButton.style.cursor = "pointer";
         triggerButton.style.backgroundColor = "transparent";
         triggerButton.style.padding = "0";
         triggerButton.style.position = "relative";
-        triggerButton.style.top = "2px";
+        triggerButton.style.top = theme.positioning.iconOffset2;
         triggerButton.title = this.showTriggeredEvents ? "Hide render triggered events" : "Show render triggered events";
         triggerButton.onclick = (): void => this.toggleTriggeredEvents();
 
         const trackedButton = document.createElement("button");
         trackedButton.id = `vue-flow-vis-tracked-button-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
         trackedButton.innerHTML = createTrackIcon(14);
-        trackedButton.style.color = this.showTrackedEvents ? "#068261ff" : "#ccc";
+        trackedButton.style.color = this.showTrackedEvents ? theme.colors.tracked : theme.colors.textDisabled;
         trackedButton.style.border = "none";
         trackedButton.style.cursor = "pointer";
         trackedButton.style.backgroundColor = "transparent";
         trackedButton.style.padding = "0";
         trackedButton.style.position = "relative";
-        trackedButton.style.top = "2px";
+        trackedButton.style.top = theme.positioning.iconOffset2;
         trackedButton.title = this.showTrackedEvents ? "Hide render tracked events" : "Show render tracked events";
         trackedButton.onclick = (): void => this.toggleTrackedEvents();
 
@@ -330,17 +331,17 @@ export class UILogger implements Logger {
             const noEvents = document.createElement("p");
             noEvents.id = `vue-flow-vis-no-events-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
             noEvents.textContent = group.events.length === 0 ? "No events recorded yet" : "No events to display";
-            noEvents.style.color = "#666";
+            noEvents.style.color = theme.colors.textMuted;
             noEvents.style.fontStyle = "italic";
             noEvents.style.margin = "0";
-            noEvents.style.padding = "1em";
+            noEvents.style.padding = theme.spacing.xl;
             scrollableContainer.appendChild(noEvents);
         } else {
             const eventsContainer = document.createElement("div");
             eventsContainer.id = `vue-flow-vis-events-container-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
             eventsContainer.style.display = "flex";
             eventsContainer.style.flexDirection = "column";
-            eventsContainer.style.gap = "0.5em";
+            eventsContainer.style.gap = theme.spacing.md;
             eventsContainer.style.width = "100%";
             eventsContainer.style.boxSizing = "border-box";
 
@@ -356,27 +357,27 @@ export class UILogger implements Logger {
                 const eventDiv = document.createElement("div");
                 eventDiv.id = `vue-flow-vis-event-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
                 eventDiv.style.display = "block";
-                eventDiv.style.padding = "0.5em";
-                eventDiv.style.border = "1px solid #ddd";
-                eventDiv.style.borderRadius = "4px";
-                eventDiv.style.fontFamily = "monospace";
-                eventDiv.style.fontSize = "0.9em";
+                eventDiv.style.padding = theme.spacing.md;
+                eventDiv.style.border = `${theme.borderWidths.thin} solid ${theme.colors.border}`;
+                eventDiv.style.borderRadius = theme.borderRadius.md;
+                eventDiv.style.fontFamily = theme.fonts.primary;
+                eventDiv.style.fontSize = theme.fontSizes.sm;
                 eventDiv.style.cursor = "pointer";
-                eventDiv.style.transition = "background-color 0.2s";
-                eventDiv.style.width = "calc(100% - 1em)";
+                eventDiv.style.transition = `background-color ${theme.transitions.normal}`;
+                eventDiv.style.width = `calc(100% - ${theme.spacing.xl})`;
                 eventDiv.style.boxSizing = "border-box";
-                eventDiv.style.marginLeft = "0.5em";
-                eventDiv.style.marginRight = "0.5em";
+                eventDiv.style.marginLeft = theme.spacing.md;
+                eventDiv.style.marginRight = theme.spacing.md;
 
                 // Check if this event is selected and set initial background
                 const isSelected = this.selectedEvent && 
                     this.selectedEvent.eventIndex === eventIndex && 
                     this.selectedEvent.componentName === componentName;
 
-                eventDiv.style.backgroundColor = isSelected ? "#e9e9e9" : "#f9f9f9";
+                eventDiv.style.backgroundColor = isSelected ? theme.colors.backgroundHover : theme.colors.backgroundSecondary;
 
                 eventDiv.onmouseenter = (): void => {
-                    eventDiv.style.backgroundColor = "#e9e9e9";
+                    eventDiv.style.backgroundColor = theme.colors.backgroundHover;
                 };
 
                 eventDiv.onmouseleave = (): void => {
@@ -385,7 +386,7 @@ export class UILogger implements Logger {
                         this.selectedEvent.eventIndex === eventIndex && 
                         this.selectedEvent.componentName === componentName;
                     
-                    eventDiv.style.backgroundColor = currentlySelected ? "#e9e9e9" : "#f9f9f9";
+                    eventDiv.style.backgroundColor = currentlySelected ? theme.colors.backgroundHover : theme.colors.backgroundSecondary;
                 };
 
                 eventDiv.onclick = (): void => {
@@ -401,15 +402,15 @@ export class UILogger implements Logger {
                 const iconSpan = document.createElement("span");
                 iconSpan.id = `vue-flow-vis-event-icon-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
                 iconSpan.innerHTML = event.type === 'tracked' ? createTrackIcon(14) : createTriggerIcon(14);
-                iconSpan.style.color = event.type === 'tracked' ? "#068261ff" : "#ff9800";
-                iconSpan.style.marginRight = "0.5em";
+                iconSpan.style.color = event.type === 'tracked' ? theme.colors.tracked : theme.colors.triggered;
+                iconSpan.style.marginRight = theme.spacing.md;
                 iconSpan.style.position = "relative";
-                iconSpan.style.top = "2px";
+                iconSpan.style.top = theme.positioning.iconOffset2;
 
                 const eventSpan = document.createElement("span");
                 eventSpan.id = `vue-flow-vis-event-span-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
                 eventSpan.textContent = event.type === 'tracked' ? 'Render tracked' : 'Render triggered';
-                eventSpan.style.color = event.type === 'tracked' ? "#068261ff" : "#ff9800";
+                eventSpan.style.color = event.type === 'tracked' ? theme.colors.tracked : theme.colors.triggered;
 
                 eventDiv.appendChild(iconSpan);
                 eventDiv.appendChild(eventSpan);
@@ -433,7 +434,7 @@ export class UILogger implements Logger {
         if (this.selectedEvent && this.selectedComponent) {
             const prevEventDiv = document.querySelector(`#vue-flow-vis-event-${this.selectedComponent.replace(/[^a-zA-Z0-9]/g, '-')}-${this.selectedEvent.eventIndex}`) as HTMLDivElement;
             if (prevEventDiv) {
-                prevEventDiv.style.backgroundColor = "#f9f9f9";
+                prevEventDiv.style.backgroundColor = theme.colors.backgroundSecondary;
             }
         }
 
@@ -442,7 +443,7 @@ export class UILogger implements Logger {
         // Update visual state for newly selected event
         const currentEventDiv = document.querySelector(`#vue-flow-vis-event-${event.componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${event.eventIndex}`) as HTMLDivElement;
         if (currentEventDiv) {
-            currentEventDiv.style.backgroundColor = "#e9e9e9";
+            currentEventDiv.style.backgroundColor = theme.colors.backgroundHover;
         }
 
         // Update or create the event details area
@@ -476,9 +477,9 @@ export class UILogger implements Logger {
         detailsArea.style.display = "flex";
         detailsArea.style.flexDirection = "column";
         detailsArea.style.minHeight = "0";
-        detailsArea.style.padding = "0.5em";
-        detailsArea.style.borderLeft = "1px solid #ddd";
-        detailsArea.style.paddingLeft = "1em";
+        detailsArea.style.padding = theme.spacing.md;
+        detailsArea.style.borderLeft = `${theme.borderWidths.thin} solid ${theme.colors.border}`;
+        detailsArea.style.paddingLeft = theme.spacing.xl;
         detailsArea.style.overflow = "auto";
 
         if (this.selectedEvent) {
@@ -486,24 +487,24 @@ export class UILogger implements Logger {
             scrollableContent.id = "vue-flow-vis-event-details-scrollable";
             scrollableContent.style.display = "flex";
             scrollableContent.style.flexDirection = "column";
-            scrollableContent.style.gap = "0.5em";
+            scrollableContent.style.gap = theme.spacing.md;
             scrollableContent.style.overflow = "auto";
-            scrollableContent.style.paddingRight = "0.5em";
+            scrollableContent.style.paddingRight = theme.spacing.md;
 
             // Event Type
             scrollableContent.appendChild(this.createDetailField(
                 "Event Type", 
                 this.selectedEvent.type === 'tracked' ? 'Render tracked' : 'Render triggered',
-                this.selectedEvent.type === 'tracked' ? "#068261ff" : "#ff9800"
+                this.selectedEvent.type === 'tracked' ? theme.colors.tracked : theme.colors.triggered
             ));
 
             // Operation Type
             const operation = this.selectedEvent.eventData.event.type;
-            scrollableContent.appendChild(this.createDetailField("Operation", operation?.toUpperCase() ?? "UNKNOWN", "#007acc"));
+            scrollableContent.appendChild(this.createDetailField("Operation", operation?.toUpperCase() ?? "UNKNOWN", theme.colors.primary));
 
             // Target Property
             const key = EventFormatter.formatKey(this.selectedEvent.eventData.event.key);
-            scrollableContent.appendChild(this.createDetailField("Property", key, "#333"));
+            scrollableContent.appendChild(this.createDetailField("Property", key, theme.colors.text));
 
             // Target Object
             const target = EventFormatter.formatTarget(this.selectedEvent.eventData.event.target);
@@ -515,12 +516,12 @@ export class UILogger implements Logger {
                 
                 if (event.oldValue !== undefined) {
                     const oldValue = EventFormatter.formatValue(event.oldValue);
-                    scrollableContent.appendChild(this.createDetailField("Previous Value", oldValue, "#cc0000"));
+                    scrollableContent.appendChild(this.createDetailField("Previous Value", oldValue, theme.colors.error));
                 }
                 
                 if (event.newValue !== undefined) {
                     const newValue = EventFormatter.formatValue(event.newValue);
-                    scrollableContent.appendChild(this.createDetailField("New Value", newValue, "#00cc00"));
+                    scrollableContent.appendChild(this.createDetailField("New Value", newValue, theme.colors.success));
                 }
             }
 
@@ -533,30 +534,30 @@ export class UILogger implements Logger {
         return detailsArea;
     }
 
-    private createDetailField(label: string, value: string, valueColor: string = "#333"): HTMLDivElement {
+    private createDetailField(label: string, value: string, valueColor: string = theme.colors.text): HTMLDivElement {
         const fieldDiv = document.createElement("div");
         fieldDiv.id = `vue-flow-vis-detail-field-${label.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
         fieldDiv.style.display = "flex";
         fieldDiv.style.flexDirection = "column";
-        fieldDiv.style.padding = "0.5em";
-        fieldDiv.style.backgroundColor = "#f9f9f9";
-        fieldDiv.style.border = "1px solid #ddd";
-        fieldDiv.style.borderRadius = "4px";
+        fieldDiv.style.padding = theme.spacing.md;
+        fieldDiv.style.backgroundColor = theme.colors.backgroundSecondary;
+        fieldDiv.style.border = `${theme.borderWidths.thin} solid ${theme.colors.border}`;
+        fieldDiv.style.borderRadius = theme.borderRadius.md;
 
         const labelSpan = document.createElement("span");
         labelSpan.id = `vue-flow-vis-detail-label-${label.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
         labelSpan.textContent = label + ":";
-        labelSpan.style.fontFamily = "monospace";
-        labelSpan.style.fontSize = "0.8em";
-        labelSpan.style.color = "#666";
+        labelSpan.style.fontFamily = theme.fonts.primary;
+        labelSpan.style.fontSize = theme.fontSizes.xs;
+        labelSpan.style.color = theme.colors.textMuted;
         labelSpan.style.fontWeight = "bold";
-        labelSpan.style.marginBottom = "0.25em";
+        labelSpan.style.marginBottom = theme.spacing.xs;
 
         const valueSpan = document.createElement("span");
         valueSpan.id = `vue-flow-vis-detail-value-${label.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
         valueSpan.textContent = value;
-        valueSpan.style.fontFamily = "monospace";
-        valueSpan.style.fontSize = "0.9em";
+        valueSpan.style.fontFamily = theme.fonts.primary;
+        valueSpan.style.fontSize = theme.fontSizes.sm;
         valueSpan.style.color = valueColor;
         valueSpan.style.wordBreak = "break-word";
         valueSpan.style.whiteSpace = "pre-wrap";
@@ -588,13 +589,13 @@ export class UILogger implements Logger {
         const errorDiv = document.createElement("div");
         errorDiv.id = `vue-flow-vis-error-${Date.now()}`;
         errorDiv.style.color = "red";
-        errorDiv.style.marginBottom = "0.5em";
-        errorDiv.style.padding = "0.5em";
-        errorDiv.style.border = "1px solid red";
-        errorDiv.style.borderRadius = "4px";
-        errorDiv.style.backgroundColor = "#ffeaea";
-        errorDiv.style.fontFamily = "monospace";
-        errorDiv.style.fontSize = "0.9em";
+        errorDiv.style.marginBottom = theme.spacing.md;
+        errorDiv.style.padding = theme.spacing.md;
+        errorDiv.style.border = `${theme.borderWidths.thin} solid ${theme.colors.borderError}`;
+        errorDiv.style.borderRadius = theme.borderRadius.md;
+        errorDiv.style.backgroundColor = theme.colors.backgroundError;
+        errorDiv.style.fontFamily = theme.fonts.primary;
+        errorDiv.style.fontSize = theme.fontSizes.sm;
         
         const timestamp = new Date().toLocaleTimeString();
         errorDiv.textContent = `[${timestamp}] [Error] ${error.message}`;

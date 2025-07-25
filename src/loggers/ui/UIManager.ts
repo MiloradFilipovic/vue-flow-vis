@@ -2,6 +2,7 @@
 import { createFlowIcon, createMinimizeIcon, createExpandIcon, createTrashIcon } from "./icons";
 import { PLUGIN_URL } from "./constants";
 import { FILTER_COMPONENTS_PLACEHOLDER } from "./strings";
+import { theme } from "./theme";
 
 export interface UIManagerCallbacks {
     onClear: () => void;
@@ -54,16 +55,16 @@ export class UIManager {
         const panel = document.createElement("div");
         panel.id = "vue-flow-vis-logger-panel";
         panel.style.position = "fixed";
-        panel.style.bottom = "1em";
-        panel.style.right = "1em";
-        panel.style.width = "50vw";
-        panel.style.height = "450px";
+        panel.style.bottom = theme.positioning.panelBottom;
+        panel.style.right = theme.positioning.panelRight;
+        panel.style.width = theme.sizes.panelWidth;
+        panel.style.height = theme.sizes.panelHeight;
         panel.style.display = "flex";
         panel.style.flexDirection = "column";
-        panel.style.backgroundColor = "#fff";
-        panel.style.border = "1px solid #ccc";
-        panel.style.zIndex = "9999";
-        panel.style.fontFamily = "Arial, sans-serif";
+        panel.style.backgroundColor = theme.colors.backgroundPrimary;
+        panel.style.border = `${theme.borderWidths.thin} solid ${theme.colors.borderLight}`;
+        panel.style.zIndex = theme.zIndex.modal.toString();
+        panel.style.fontFamily = theme.fonts.primary;
         panel.style.resize = "none";
         
         return panel;
@@ -76,20 +77,20 @@ export class UIManager {
         handle.style.top = "0";
         handle.style.left = "0";
         handle.style.right = "0";
-        handle.style.height = "8px";
+        handle.style.height = theme.sizes.dragHandleHeight;
         handle.style.cursor = "ns-resize";
-        handle.style.backgroundColor = "transparent";
-        handle.style.borderTop = "2px solid transparent";
-        handle.style.transition = "border-color 0.2s ease";
-        handle.style.zIndex = "2";
+        handle.style.backgroundColor = theme.colors.transparent;
+        handle.style.borderTop = `${theme.borderWidths.medium} solid ${theme.colors.transparent}`;
+        handle.style.transition = `border-color ${theme.transitions.normal}`;
+        handle.style.zIndex = theme.zIndex.elevated.toString();
         
         handle.addEventListener("mouseenter", () => {
-            handle.style.borderTopColor = "#007acc";
+            handle.style.borderTopColor = theme.colors.primary;
         });
         
         handle.addEventListener("mouseleave", () => {
             if (!this.isDragging) {
-                handle.style.borderTopColor = "transparent";
+                handle.style.borderTopColor = theme.colors.transparent;
             }
         });
         
@@ -104,20 +105,20 @@ export class UIManager {
         handle.style.top = "0";
         handle.style.left = "0";
         handle.style.bottom = "0";
-        handle.style.width = "8px";
+        handle.style.width = theme.sizes.resizeHandleWidth;
         handle.style.cursor = "ew-resize";
-        handle.style.backgroundColor = "transparent";
-        handle.style.borderLeft = "2px solid transparent";
-        handle.style.transition = "border-color 0.2s ease";
-        handle.style.zIndex = "2";
+        handle.style.backgroundColor = theme.colors.transparent;
+        handle.style.borderLeft = `${theme.borderWidths.medium} solid ${theme.colors.transparent}`;
+        handle.style.transition = `border-color ${theme.transitions.normal}`;
+        handle.style.zIndex = theme.zIndex.elevated.toString();
         
         handle.addEventListener("mouseenter", () => {
-            handle.style.borderLeftColor = "#007acc";
+            handle.style.borderLeftColor = theme.colors.primary;
         });
         
         handle.addEventListener("mouseleave", () => {
             if (!this.isLeftResizing) {
-                handle.style.borderLeftColor = "transparent";
+                handle.style.borderLeftColor = theme.colors.transparent;
             }
         });
         
@@ -132,17 +133,17 @@ export class UIManager {
         this.headerElement.style.justifyContent = "space-between";
         this.headerElement.style.alignItems = "center";
         this.headerElement.style.position = "relative";
-        this.headerElement.style.zIndex = "1";
-        this.headerElement.style.backgroundColor = "#f5f5f5";
-        this.headerElement.style.padding = "0.3em 0.5em";
-        this.headerElement.style.borderBottom = "1px solid #ddd";
+        this.headerElement.style.zIndex = theme.zIndex.base.toString();
+        this.headerElement.style.backgroundColor = theme.colors.backgroundTertiary;
+        this.headerElement.style.padding = `${theme.spacing.sm} ${theme.spacing.md}`;
+        this.headerElement.style.borderBottom = `${theme.borderWidths.thin} solid ${theme.colors.border}`;
         this.headerElement.style.userSelect = "none";
 
         const titleContainer = document.createElement("div");
         titleContainer.id = "vue-flow-vis-title-container";
         titleContainer.style.display = "flex";
         titleContainer.style.alignItems = "center";
-        titleContainer.style.gap = "0.5em";
+        titleContainer.style.gap = theme.spacing.md;
         titleContainer.style.alignContent = "center";
 
         const pluginLink = document.createElement("a");
@@ -150,41 +151,41 @@ export class UIManager {
         pluginLink.href = PLUGIN_URL;
         pluginLink.target = "_blank";
         pluginLink.style.textDecoration = "none";
-        pluginLink.style.color = "black";
+        pluginLink.style.color = theme.colors.black;
         titleContainer.appendChild(pluginLink);
 
         const icon = document.createElement("span");
         icon.id = "vue-flow-vis-header-icon";
         icon.innerHTML = createFlowIcon(18);
-        icon.style.color = "black";
+        icon.style.color = theme.colors.black;
         icon.style.position = "relative";
-        icon.style.top = "1px";
+        icon.style.top = theme.positioning.iconOffset;
         pluginLink.appendChild(icon);
         
         icon.onmouseover = (): void => {
-            icon.style.color = "#00cc96ff";
+            icon.style.color = theme.colors.primaryHover;
         };
         icon.onmouseout = (): void => {
-            icon.style.color = "black";
+            icon.style.color = theme.colors.black;
         };
 
         const title = document.createElement("span");
         title.id = "vue-flow-vis-title";
         title.textContent = "vue-flow-vis";
-        title.style.fontFamily = "monospace";
-        title.style.paddingBottom = "2px";
+        title.style.fontFamily = theme.fonts.primary;
+        title.style.paddingBottom = theme.positioning.iconOffset2;
         titleContainer.appendChild(title);
 
         const buttonContainer = document.createElement("div");
         buttonContainer.id = "vue-flow-vis-button-container";
         buttonContainer.style.display = "flex";
-        buttonContainer.style.gap = "0.5em";
+        buttonContainer.style.gap = theme.spacing.md;
         buttonContainer.style.alignItems = "center";
 
         const minimizeButton = document.createElement("button");
         minimizeButton.id = "vue-flow-vis-minimize-button";
         minimizeButton.innerHTML = createMinimizeIcon(14);
-        minimizeButton.style.color = "black";
+        minimizeButton.style.color = theme.colors.black;
         minimizeButton.style.border = "none";
         minimizeButton.style.cursor = "pointer";
         minimizeButton.style.backgroundColor = "transparent";
@@ -196,7 +197,7 @@ export class UIManager {
         const clearButton = document.createElement("button");
         clearButton.id = "vue-flow-vis-clear-button";
         clearButton.innerHTML = createTrashIcon(14);
-        clearButton.style.color = "#000";
+        clearButton.style.color = theme.colors.black;
         clearButton.style.border = "none";
         clearButton.style.cursor = "pointer";
         clearButton.style.backgroundColor = "transparent";
@@ -229,10 +230,10 @@ export class UIManager {
     private createSidebar(): void {
         this.sidebar = document.createElement("div");
         this.sidebar.id = "vue-flow-vis-sidebar";
-        this.sidebar.style.width = "200px";
-        this.sidebar.style.minWidth = "150px";
-        this.sidebar.style.borderRight = "1px solid #ddd";
-        this.sidebar.style.backgroundColor = "#f9f9f9";
+        this.sidebar.style.width = theme.sizes.sidebarWidth;
+        this.sidebar.style.minWidth = theme.sizes.sidebarMinWidth;
+        this.sidebar.style.borderRight = `${theme.borderWidths.thin} solid ${theme.colors.border}`;
+        this.sidebar.style.backgroundColor = theme.colors.backgroundSecondary;
         this.sidebar.style.position = "relative";
         this.sidebar.style.display = "flex";
         this.sidebar.style.flexDirection = "column";
@@ -253,9 +254,9 @@ export class UIManager {
     private createSidebarHeader(): HTMLDivElement {
         const sidebarHeader = document.createElement("div");
         sidebarHeader.id = "vue-flow-vis-sidebar-header";
-        sidebarHeader.style.padding = "0.5em";
-        sidebarHeader.style.borderBottom = "1px solid #ddd";
-        sidebarHeader.style.backgroundColor = "#f5f5f5";
+        sidebarHeader.style.padding = theme.spacing.md;
+        sidebarHeader.style.borderBottom = `${theme.borderWidths.thin} solid ${theme.colors.border}`;
+        sidebarHeader.style.backgroundColor = theme.colors.backgroundTertiary;
         sidebarHeader.style.flexShrink = "0";
 
         const searchInput = document.createElement("input");
@@ -263,21 +264,20 @@ export class UIManager {
         searchInput.type = "text";
         searchInput.placeholder = FILTER_COMPONENTS_PLACEHOLDER;
         searchInput.style.width = "100%";
-        searchInput.style.padding = "0.4em";
-        searchInput.style.fontFamily = 'monospace';
-        searchInput.style.border = "1px solid #ddd";
-        searchInput.style.borderRadius = "4px";
-        searchInput.style.fontSize = "0.9em";
-        searchInput.style.fontFamily = "Arial, sans-serif";
+        searchInput.style.padding = theme.sizes.inputPadding;
+        searchInput.style.border = `${theme.borderWidths.thin} solid ${theme.colors.border}`;
+        searchInput.style.borderRadius = theme.borderRadius.md;
+        searchInput.style.fontSize = theme.fontSizes.sm;
+        searchInput.style.fontFamily = theme.fonts.primary;
         searchInput.style.boxSizing = "border-box";
         searchInput.style.outline = "none";
 
         searchInput.addEventListener("focus", () => {
-            searchInput.style.borderColor = "#007acc";
+            searchInput.style.borderColor = theme.colors.primary;
         });
 
         searchInput.addEventListener("blur", () => {
-            searchInput.style.borderColor = "#ddd";
+            searchInput.style.borderColor = theme.colors.border;
         });
 
         searchInput.addEventListener("input", () => {
