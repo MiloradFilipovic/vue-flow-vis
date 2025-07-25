@@ -1,7 +1,7 @@
 /* eslint-disable no-undef */
 import { createFlowIcon, createMinimizeIcon, createExpandIcon, createTrashIcon } from "./icons";
 import { PLUGIN_URL } from "./constants";
-import { FILTER_COMPONENTS_PLACEHOLDER } from "./strings";
+import { APP_NAME, FILTER_COMPONENTS_PLACEHOLDER } from "./strings";
 import { theme } from "./theme";
 
 export interface UIManagerCallbacks {
@@ -171,7 +171,7 @@ export class UIManager {
 
         const title = document.createElement("span");
         title.id = "vue-flow-vis-title";
-        title.textContent = "vue-flow-vis";
+        title.textContent = APP_NAME;
         title.style.fontFamily = theme.fonts.primary;
         title.style.paddingBottom = theme.positioning.iconOffset2;
         titleContainer.appendChild(title);
