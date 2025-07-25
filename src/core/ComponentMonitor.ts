@@ -4,11 +4,27 @@ import type {
   RenderEventData, 
   Logger,
 } from '../types'
-import { ConsoleLogger } from '../utils/logger'
 import { ComponentIdentifier } from '../utils/componentIdentifier'
+import { UILogger } from '../loggers/ui/UILogger'
+import { ConsoleLogger } from '../loggers/console/ConsoleLogger'
+
+// No-op logger for when logging is disabled
+class NoOpLogger implements Logger {
+  tracked(_data: RenderEventData): void {
+    // Do nothing
+  }
+  
+  triggered(_data: RenderEventData): void {
+    // Do nothing
+  }
+  
+  error(_error: Error, _context?: unknown): void {
+    // Do nothing
+  }
+}
 
 export class ComponentMonitor {
-  public options: Required<FlowVisOptions>
+  public options: Required<Omit<FlowVisOptions, 'customLogger'>> & { customLogger?: Logger }
   private logger: Logger
   
   constructor(options: FlowVisOptions = {}) {
@@ -21,15 +37,39 @@ export class ComponentMonitor {
       batchWindow: options.batchWindow ?? DEFAULT_BATCH_WINDOW,
       onRenderTracked: (): void => {},
       onRenderTriggered: (): void => {},
-      customLogger: new ConsoleLogger({
-        batchLogs: options.batchLogs,
-        useTable: options.logToTable,
-        batchWindow: options.batchWindow ?? DEFAULT_BATCH_WINDOW
-      }),
+      logger: 'ui',
+      customLogger: undefined,
       ...options
     }
     
-    this.logger = this.options.customLogger!
+    this.logger = this.createLogger()
+  }
+
+  private createLogger(): Logger {
+    // Custom logger takes precedence
+    if (this.options.customLogger) {
+      return this.options.customLogger
+    }
+
+    // Create logger based on type selection
+    switch (this.options.logger) {
+      case 'console':
+        return new ConsoleLogger({
+          batchLogs: this.options.batchLogs,
+          useTable: this.options.logToTable,
+          batchWindow: this.options.batchWindow
+        })
+      case 'ui':
+        return new UILogger()
+      case 'none':
+        return new NoOpLogger()
+      default:
+        return new ConsoleLogger({
+          batchLogs: this.options.batchLogs,
+          useTable: this.options.logToTable,
+          batchWindow: this.options.batchWindow
+        })
+    }
   }
   
   shouldMonitorComponent(componentName: string, instance?: import('vue').ComponentInternalInstance): boolean {

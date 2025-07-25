@@ -46,8 +46,17 @@ export type FlowVisOptions = {
    */
   onRenderTriggered?: (data: RenderEventData) => void
   /**
+   * Logger type to use for output
+   * - 'console': Uses ConsoleLogger for browser console output (default)
+   * - 'ui': Uses UILogger for in-page visual panel
+   * - 'none': Disables logging entirely
+   * @default 'console'
+   */
+  logger?: 'console' | 'ui' | 'none'
+  /**
    * Custom logger for handling logs
-   * If provided, this logger will be used instead of the default console logger
+   * If provided, this logger will be used instead of the built-in logger option
+   * Takes precedence over the 'logger' option
    */
   customLogger?: Logger
 }

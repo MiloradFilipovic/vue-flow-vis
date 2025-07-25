@@ -1,0 +1,1 @@
+export const PLUGIN_URL = 'https://github.com/MiloradFilipovic/vue-flow-vis';

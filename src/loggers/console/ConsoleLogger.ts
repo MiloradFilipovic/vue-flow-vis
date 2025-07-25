@@ -1,5 +1,5 @@
-import { DEFAULT_BATCH_WINDOW } from '../constants'
-import type { Logger, RenderEventData } from '../types'
+import { DEFAULT_BATCH_WINDOW } from '../../constants'
+import type { Logger, RenderEventData } from '../../types'
 
 export class ConsoleLogger implements Logger {
   private batchLogs: boolean
