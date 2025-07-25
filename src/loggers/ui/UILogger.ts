@@ -791,18 +791,49 @@ export class UILogger implements Logger {
         eventsListArea.appendChild(scrollableContainer);
         contentArea.appendChild(eventsListArea);
 
-        if (this.selectedEvent) {
-            const detailsArea = this.createEventDetailsArea();
-            contentArea.appendChild(detailsArea);
-        }
-
         this.mainArea.appendChild(contentArea);
+        
+        // Add event details area if an event is selected
+        this.updateEventDetailsArea();
     }
 
     private selectEvent(event: SelectedEvent): void {
+        // Clear previous selection visual state
+        if (this.selectedEvent && this.selectedComponent) {
+            const prevEventDiv = document.querySelector(`#vue-flow-vis-event-${this.selectedComponent.replace(/[^a-zA-Z0-9]/g, '-')}-${this.selectedEvent.eventIndex}`) as HTMLDivElement;
+            if (prevEventDiv) {
+                prevEventDiv.style.backgroundColor = "#f9f9f9";
+            }
+        }
+
         this.selectedEvent = event;
-        if (this.selectedComponent) {
-            this.displayComponentEvents(this.selectedComponent);
+
+        // Update visual state for newly selected event
+        const currentEventDiv = document.querySelector(`#vue-flow-vis-event-${event.componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${event.eventIndex}`) as HTMLDivElement;
+        if (currentEventDiv) {
+            currentEventDiv.style.backgroundColor = "#e9e9e9";
+        }
+
+        // Update or create the event details area
+        this.updateEventDetailsArea();
+    }
+
+    private updateEventDetailsArea(): void {
+        if (!this.mainArea) return;
+
+        const contentArea = this.mainArea.querySelector('#vue-flow-vis-content-area-' + this.selectedComponent?.replace(/[^a-zA-Z0-9]/g, '-')) as HTMLDivElement;
+        if (!contentArea) return;
+
+        // Remove existing details area if it exists
+        const existingDetailsArea = contentArea.querySelector('#vue-flow-vis-event-details-area');
+        if (existingDetailsArea) {
+            existingDetailsArea.remove();
+        }
+
+        // Add new details area if an event is selected
+        if (this.selectedEvent) {
+            const detailsArea = this.createEventDetailsArea();
+            contentArea.appendChild(detailsArea);
         }
     }
 
