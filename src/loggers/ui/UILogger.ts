@@ -1,10 +1,11 @@
 /* eslint-disable no-undef */
 import { Logger, RenderEventData } from "../../types";
-import { createComponentIcon, createTrackIcon, createTriggerIcon, createFlowIcon } from "./icons";
-import { MAIN_AREA_PLACEHOLDER } from "./strings";
+import { createComponentIcon, createTrackIcon, createTriggerIcon, createFlowIcon, createClockIcon } from "./icons";
+import { EVENT_DETAILS_HEADER_DEBUGGER_EVENT, EVENT_DETAILS_HEADER_ORIGINAL, MAIN_AREA_PLACEHOLDER } from "./strings";
 import { UIManager, UIManagerCallbacks } from "./UIManager";
-import { EventFormatter } from "./EventFormatter";
 import { theme } from "./theme";
+import { VUE_DEBUGGER_EVENT_URL } from "./constants";
+import { ObjectInspector } from "./ObjectInspector";
 
 type ComponentGroup = {
     sidebarItem: HTMLDivElement;
@@ -29,6 +30,7 @@ export class UILogger implements Logger {
     private showTrackedEvents = true;
     private showTriggeredEvents = true;
     private componentFilter = "";
+    private objectInspector: ObjectInspector;
 
     constructor() {
         const callbacks: UIManagerCallbacks = {
@@ -41,6 +43,13 @@ export class UILogger implements Logger {
         };
         
         this.uiManager = new UIManager(callbacks);
+        
+        // Initialize ObjectInspector and inject styles once
+        this.objectInspector = new ObjectInspector({
+            expandDepth: 1,
+        });
+        ObjectInspector.injectStyles();
+        
         this.showPlaceholderText();
     }
 
@@ -268,7 +277,8 @@ export class UILogger implements Logger {
 
         const eventsListArea = document.createElement("div");
         eventsListArea.id = `vue-flow-vis-events-list-area-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
-        eventsListArea.style.flex = "1";
+        // Set flex based on whether an event is selected
+        eventsListArea.style.flex = this.selectedEvent ? "0 0 30%" : "1";
         eventsListArea.style.display = "flex";
         eventsListArea.style.flexDirection = "column";
         eventsListArea.style.minHeight = "0";
@@ -356,7 +366,8 @@ export class UILogger implements Logger {
 
                 const eventDiv = document.createElement("div");
                 eventDiv.id = `vue-flow-vis-event-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
-                eventDiv.style.display = "block";
+                eventDiv.style.display = "flex";
+                eventDiv.style.alignItems = "center";
                 eventDiv.style.padding = theme.spacing.md;
                 eventDiv.style.border = `${theme.borderWidths.thin} solid ${theme.colors.border}`;
                 eventDiv.style.borderRadius = theme.borderRadius.md;
@@ -406,14 +417,42 @@ export class UILogger implements Logger {
                 iconSpan.style.marginRight = theme.spacing.md;
                 iconSpan.style.position = "relative";
                 iconSpan.style.top = theme.positioning.iconOffset2;
+                iconSpan.style.flexShrink = "0";
 
                 const eventSpan = document.createElement("span");
                 eventSpan.id = `vue-flow-vis-event-span-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
                 eventSpan.textContent = event.type === 'tracked' ? 'Render tracked' : 'Render triggered';
                 eventSpan.style.color = event.type === 'tracked' ? theme.colors.tracked : theme.colors.triggered;
+                eventSpan.style.flex = "1";
+
+                const timestampContainer = document.createElement("span");
+                timestampContainer.id = `vue-flow-vis-event-timestamp-container-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
+                timestampContainer.style.display = "flex";
+                timestampContainer.style.alignItems = "center";
+                timestampContainer.style.flexShrink = "0";
+                timestampContainer.style.gap = theme.spacing.xs;
+
+                const clockIcon = document.createElement("span");
+                clockIcon.id = `vue-flow-vis-event-clock-icon-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
+                clockIcon.innerHTML = createClockIcon(12);
+                clockIcon.style.color = theme.colors.textMuted;
+                clockIcon.style.flexShrink = "0";
+                clockIcon.style.position = "relative";
+                clockIcon.style.top = theme.positioning.iconOffset;
+
+                const timestampSpan = document.createElement("span");
+                timestampSpan.id = `vue-flow-vis-event-timestamp-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
+                timestampSpan.textContent = event.timestamp;
+                timestampSpan.style.color = theme.colors.textMuted;
+                timestampSpan.style.fontSize = theme.fontSizes.xs;
+                timestampSpan.style.fontFamily = theme.fonts.primary;
+
+                timestampContainer.appendChild(clockIcon);
+                timestampContainer.appendChild(timestampSpan);
 
                 eventDiv.appendChild(iconSpan);
                 eventDiv.appendChild(eventSpan);
+                eventDiv.appendChild(timestampContainer);
                 eventsContainer.appendChild(eventDiv);
             });
 
@@ -457,6 +496,12 @@ export class UILogger implements Logger {
         const contentArea = mainArea.querySelector('#vue-flow-vis-content-area-' + this.selectedComponent?.replace(/[^a-zA-Z0-9]/g, '-')) as HTMLDivElement;
         if (!contentArea) return;
 
+        // Update event list area flex based on selection state
+        const eventsListArea = contentArea.querySelector('#vue-flow-vis-events-list-area-' + this.selectedComponent?.replace(/[^a-zA-Z0-9]/g, '-')) as HTMLDivElement;
+        if (eventsListArea) {
+            eventsListArea.style.flex = this.selectedEvent ? "0 0 30%" : "1";
+        }
+
         // Remove existing details area if it exists
         const existingDetailsArea = contentArea.querySelector('#vue-flow-vis-event-details-area');
         if (existingDetailsArea) {
@@ -473,104 +518,67 @@ export class UILogger implements Logger {
     private createEventDetailsArea(): HTMLDivElement {
         const detailsArea = document.createElement("div");
         detailsArea.id = "vue-flow-vis-event-details-area";
-        detailsArea.style.flex = "1";
+        detailsArea.style.flex = "0 0 70%";
         detailsArea.style.display = "flex";
         detailsArea.style.flexDirection = "column";
         detailsArea.style.minHeight = "0";
-        detailsArea.style.padding = theme.spacing.md;
         detailsArea.style.borderLeft = `${theme.borderWidths.thin} solid ${theme.colors.border}`;
-        detailsArea.style.paddingLeft = theme.spacing.xl;
         detailsArea.style.overflow = "auto";
 
+        // Create header
+        const detailsHeader = document.createElement("div");
+        detailsHeader.id = "vue-flow-vis-event-details-header";
+        detailsHeader.style.margin = `0 0 ${theme.spacing.md} 0`;
+        detailsHeader.style.display = "flex";
+        detailsHeader.style.justifyContent = "start";
+        detailsHeader.style.padding = `${theme.spacing.sm} ${theme.spacing.md}`;
+        detailsHeader.style.borderBottom = `${theme.borderWidths.thin} solid ${theme.colors.border}`;
+        detailsHeader.style.gap = theme.spacing.md;
+
+        const headerContainer = document.createElement("span");
+        headerContainer.id = "vue-flow-vis-event-details-title";
+        headerContainer.style.fontFamily = theme.fonts.primary;
+        headerContainer.style.fontSize = theme.fontSizes.sm;
+        headerContainer.style.color = theme.colors.text;
+        headerContainer.style.fontWeight = "bold";
+
+        const originalText = document.createElement("span");
+        originalText.textContent = `${EVENT_DETAILS_HEADER_ORIGINAL} `;
+        
+        const debuggerEventLink = document.createElement("a");
+        debuggerEventLink.id = "vue-flow-vis-debugger-event-link";
+        debuggerEventLink.textContent = EVENT_DETAILS_HEADER_DEBUGGER_EVENT;
+        debuggerEventLink.href = VUE_DEBUGGER_EVENT_URL;
+        debuggerEventLink.target = "_blank";
+        debuggerEventLink.rel = "noopener noreferrer";
+        debuggerEventLink.style.color = theme.colors.black;
+        debuggerEventLink.style.textDecoration = "underline";
+        debuggerEventLink.style.fontFamily = theme.fonts.primary;
+        debuggerEventLink.style.fontWeight = "bold";
+        debuggerEventLink.style.cursor = "pointer";
+
+        headerContainer.appendChild(originalText);
+        headerContainer.appendChild(debuggerEventLink);
+        detailsHeader.appendChild(headerContainer);
+        detailsArea.appendChild(detailsHeader);
+
+        // Add content area for the object inspector
         if (this.selectedEvent) {
-            const scrollableContent = document.createElement("div");
-            scrollableContent.id = "vue-flow-vis-event-details-scrollable";
-            scrollableContent.style.display = "flex";
-            scrollableContent.style.flexDirection = "column";
-            scrollableContent.style.gap = theme.spacing.md;
-            scrollableContent.style.overflow = "auto";
-            scrollableContent.style.paddingRight = theme.spacing.md;
+            const contentContainer = document.createElement("div");
+            contentContainer.id = "vue-flow-vis-event-details-content";
+            contentContainer.style.flex = "1";
+            contentContainer.style.padding = `${theme.spacing.md}`;
+            contentContainer.style.overflow = "auto";
 
-            // Event Type
-            scrollableContent.appendChild(this.createDetailField(
-                "Event Type", 
-                this.selectedEvent.type === 'tracked' ? 'Render tracked' : 'Render triggered',
-                this.selectedEvent.type === 'tracked' ? theme.colors.tracked : theme.colors.triggered
-            ));
+            // Use the pre-configured ObjectInspector instance
+            const inspectorElement = this.objectInspector.render(this.selectedEvent.eventData.event, 'event');
+            contentContainer.appendChild(inspectorElement);
 
-            // Operation Type
-            const operation = this.selectedEvent.eventData.event.type;
-            scrollableContent.appendChild(this.createDetailField("Operation", operation?.toUpperCase() ?? "UNKNOWN", theme.colors.primary));
-
-            // Target Property
-            const key = EventFormatter.formatKey(this.selectedEvent.eventData.event.key);
-            scrollableContent.appendChild(this.createDetailField("Property", key, theme.colors.text));
-
-            // Target Object
-            const target = EventFormatter.formatTarget(this.selectedEvent.eventData.event.target);
-            scrollableContent.appendChild(this.createDetailField("Target Object", target));
-
-            // For trigger events, show old and new values
-            if (this.selectedEvent.type === 'triggered') {
-                const event = this.selectedEvent.eventData.event;
-                
-                if (event.oldValue !== undefined) {
-                    const oldValue = EventFormatter.formatValue(event.oldValue);
-                    scrollableContent.appendChild(this.createDetailField("Previous Value", oldValue, theme.colors.error));
-                }
-                
-                if (event.newValue !== undefined) {
-                    const newValue = EventFormatter.formatValue(event.newValue);
-                    scrollableContent.appendChild(this.createDetailField("New Value", newValue, theme.colors.success));
-                }
-            }
-
-            // Timestamp at the bottom
-            scrollableContent.appendChild(this.createDetailField("Timestamp", this.selectedEvent.timestamp));
-
-            detailsArea.appendChild(scrollableContent);
+            detailsArea.appendChild(contentContainer);
         }
 
         return detailsArea;
     }
-
-    private createDetailField(label: string, value: string, valueColor: string = theme.colors.text): HTMLDivElement {
-        const fieldDiv = document.createElement("div");
-        fieldDiv.id = `vue-flow-vis-detail-field-${label.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
-        fieldDiv.style.display = "flex";
-        fieldDiv.style.flexDirection = "column";
-        fieldDiv.style.padding = theme.spacing.md;
-        fieldDiv.style.backgroundColor = theme.colors.backgroundSecondary;
-        fieldDiv.style.border = `${theme.borderWidths.thin} solid ${theme.colors.border}`;
-        fieldDiv.style.borderRadius = theme.borderRadius.md;
-
-        const labelSpan = document.createElement("span");
-        labelSpan.id = `vue-flow-vis-detail-label-${label.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
-        labelSpan.textContent = label + ":";
-        labelSpan.style.fontFamily = theme.fonts.primary;
-        labelSpan.style.fontSize = theme.fontSizes.xs;
-        labelSpan.style.color = theme.colors.textMuted;
-        labelSpan.style.fontWeight = "bold";
-        labelSpan.style.marginBottom = theme.spacing.xs;
-
-        const valueSpan = document.createElement("span");
-        valueSpan.id = `vue-flow-vis-detail-value-${label.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
-        valueSpan.textContent = value;
-        valueSpan.style.fontFamily = theme.fonts.primary;
-        valueSpan.style.fontSize = theme.fontSizes.sm;
-        valueSpan.style.color = valueColor;
-        valueSpan.style.wordBreak = "break-word";
-        valueSpan.style.whiteSpace = "pre-wrap";
-
-        fieldDiv.appendChild(labelSpan);
-        fieldDiv.appendChild(valueSpan);
-        
-        return fieldDiv;
-    }
-
-
-
-
 
     tracked(data: RenderEventData): void {
         this.addEventToGroup(data.componentName, 'tracked', data, data.componentPath);

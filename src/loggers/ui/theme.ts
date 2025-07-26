@@ -71,7 +71,7 @@ export const theme = {
   // Sizing
   sizes: {
     // Panel dimensions
-    panelWidth: "50vw",
+    panelWidth: "80vw",
     panelHeight: "450px",
     panelMinHeight: "150px",
     
