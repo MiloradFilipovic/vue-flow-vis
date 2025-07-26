@@ -1,1 +1,2 @@
 export const PLUGIN_URL = 'https://github.com/MiloradFilipovic/vue-flow-vis';
+export const VUE_DEBUGGER_EVENT_URL = 'https://github.com/vuejs/core/blob/c875019d49b4c36a88d929ccadc31ad414747c7b/packages/reactivity/src/effect.ts#L10';
