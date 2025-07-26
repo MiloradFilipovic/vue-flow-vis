@@ -47,6 +47,7 @@ export class UILogger implements Logger {
         // Initialize ObjectInspector and inject styles once
         this.objectInspector = new ObjectInspector({
             expandDepth: 1,
+            maxDepth: 10,
         });
         ObjectInspector.injectStyles();
         
@@ -534,11 +535,11 @@ export class UILogger implements Logger {
         detailsHeader.style.padding = `${theme.spacing.sm} ${theme.spacing.md}`;
         detailsHeader.style.borderBottom = `${theme.borderWidths.thin} solid ${theme.colors.border}`;
         detailsHeader.style.gap = theme.spacing.md;
+        detailsHeader.style.lineHeight = "1.3";
 
         const headerContainer = document.createElement("span");
         headerContainer.id = "vue-flow-vis-event-details-title";
         headerContainer.style.fontFamily = theme.fonts.primary;
-        headerContainer.style.fontSize = theme.fontSizes.sm;
         headerContainer.style.color = theme.colors.text;
         headerContainer.style.fontWeight = "bold";
 

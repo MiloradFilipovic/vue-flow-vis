@@ -13,6 +13,8 @@ export interface ObjectInspectorOptions {
     sortKeys?: boolean;
     /** Show indicators for shared references (default: true) */
     showSharedRefs?: boolean;
+    /** Maximum recursion depth to prevent stack overflow (default: 100) */
+    maxDepth?: number;
 }
 
 type ValueType = 'string' | 'number' | 'boolean' | 'null' | 'undefined' | 
@@ -56,7 +58,8 @@ export class ObjectInspector {
             expandDepth: options.expandDepth ?? 1,
             showPrototype: options.showPrototype ?? false,
             sortKeys: options.sortKeys ?? false,
-            showSharedRefs: options.showSharedRefs ?? true
+            showSharedRefs: options.showSharedRefs ?? true,
+            maxDepth: options.maxDepth ?? 100
         };
     }
 
@@ -90,29 +93,55 @@ export class ObjectInspector {
         return container;
     }
 
-    private collectObjectRefs(value: InspectableValue, refs: Map<object, { id: number; count: number }>): void {
-        if (value === null || typeof value !== 'object') return;
+    private collectObjectRefs(value: InspectableValue, refs: Map<object, { id: number; count: number }>, visited: Set<object> = new Set()): void {
+        if (value === null || (typeof value !== 'object' && typeof value !== 'function')) return;
+        
+        // Prevent infinite loops by checking if we've already visited this object
+        if (visited.has(value)) {
+            // If we've seen this object before in this traversal, just increment count if it's in refs
+            const existing = refs.get(value);
+            if (existing) {
+                existing.count++;
+            }
+            return;
+        }
+        
+        // Add to visited set to prevent revisiting during this traversal
+        visited.add(value);
         
         const existing = refs.get(value);
         if (existing) {
             existing.count++;
-            return;
+        } else {
+            refs.set(value, { id: refs.size + 1, count: 1 });
         }
         
-        refs.set(value, { id: refs.size + 1, count: 1 });
-        
         if (Array.isArray(value)) {
-            value.forEach(item => this.collectObjectRefs(item as InspectableValue, refs));
-        } else if (isObjectWithKeys(value)) {
-            Object.keys(value).forEach(key => {
-                this.collectObjectRefs(value[key] as InspectableValue, refs);
-            });
+            value.forEach(item => this.collectObjectRefs(item as InspectableValue, refs, visited));
+        } else if (isObjectWithKeys(value) || typeof value === 'function') {
+            // Handle both objects and functions (functions can have properties)
+            try {
+                Object.keys(value).forEach(key => {
+                    try {
+                        const propValue = (value as Record<string, unknown>)[key];
+                        this.collectObjectRefs(propValue as InspectableValue, refs, visited);
+                    } catch {
+                        // Skip properties that throw errors when accessed
+                    }
+                });
+            } catch {
+                // Skip objects where Object.keys() throws
+            }
             
             if (this.options.showPrototype) {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                const proto = Object.getPrototypeOf(value);
-                if (proto && proto !== Object.prototype) {
-                    this.collectObjectRefs(proto as InspectableValue, refs);
+                try {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    const proto = Object.getPrototypeOf(value);
+                    if (proto && proto !== Object.prototype && proto !== Function.prototype) {
+                        this.collectObjectRefs(proto as InspectableValue, refs, visited);
+                    }
+                } catch {
+                    // Skip prototype if getPrototypeOf throws
                 }
             }
         }
@@ -122,6 +151,38 @@ export class ObjectInspector {
         // eslint-disable-next-line no-undef
         const node = document.createElement('div');
         node.className = 'inspector-node';
+
+        // Prevent stack overflow by limiting maximum depth
+        if (depth > this.options.maxDepth) {
+            // eslint-disable-next-line no-undef
+            const row = document.createElement('div');
+            row.className = 'inspector-row';
+            
+            if (key !== null) {
+                // eslint-disable-next-line no-undef
+                const keySpan = document.createElement('span');
+                keySpan.className = 'inspector-key';
+                keySpan.textContent = this.formatKey(key);
+                row.appendChild(keySpan);
+
+                // eslint-disable-next-line no-undef
+                const separator = document.createElement('span');
+                separator.className = 'inspector-separator';
+                separator.textContent = ': ';
+                row.appendChild(separator);
+            }
+
+            // eslint-disable-next-line no-undef
+            const maxDepthSpan = document.createElement('span');
+            maxDepthSpan.className = 'inspector-max-depth';
+            maxDepthSpan.textContent = '[Maximum depth reached]';
+            maxDepthSpan.style.color = '#999';
+            maxDepthSpan.style.fontStyle = 'italic';
+            row.appendChild(maxDepthSpan);
+            
+            node.appendChild(row);
+            return node;
+        }
 
         // eslint-disable-next-line no-undef
         const row = document.createElement('div');
@@ -167,7 +228,7 @@ export class ObjectInspector {
 
         // Handle expandable values
         if (isExpandable) {
-            const isCircular = (value !== null && typeof value === 'object') ? context.path.has(value) : false;
+            const isCircular = ((value !== null && typeof value === 'object') || typeof value === 'function') ? context.path.has(value) : false;
             const refInfo = (value !== null && typeof value === 'object') ? context.objectRefs.get(value) : undefined;
             const isShared = refInfo && refInfo.count > 1;
 
@@ -200,7 +261,7 @@ export class ObjectInspector {
                 // Render children with updated path
                 const newContext: RenderContext = {
                     ...context,
-                    path: value !== null && typeof value === 'object' ? new Set(context.path).add(value) : context.path
+                    path: (value !== null && typeof value === 'object') || typeof value === 'function' ? new Set(context.path).add(value) : context.path
                 };
                 
                 const children = this.renderChildren(value, depth + 1, newContext);
@@ -307,24 +368,68 @@ export class ObjectInspector {
                 const child = this.renderNode(item as InspectableValue, index, depth, context);
                 children.appendChild(child);
             });
-        } else if (isObjectWithKeys(value)) {
-            let keys = Object.keys(value);
-            if (this.options.sortKeys) {
-                keys.sort();
+        } else if (isObjectWithKeys(value) || typeof value === 'function') {
+            // Handle both objects and functions (functions can have properties)
+            try {
+                let keys = Object.keys(value);
+                if (this.options.sortKeys) {
+                    keys.sort();
+                }
+
+                keys.forEach(key => {
+                    try {
+                        const propValue = (value as Record<string, unknown>)[key];
+                        const child = this.renderNode(propValue as InspectableValue, key, depth, context);
+                        children.appendChild(child);
+                    } catch {
+                        // Render error placeholder for properties that throw
+                        // eslint-disable-next-line no-undef
+                        const errorChild = document.createElement('div');
+                        errorChild.className = 'inspector-node';
+                        
+                        // eslint-disable-next-line no-undef
+                        const errorRow = document.createElement('div');
+                        errorRow.className = 'inspector-row';
+                        
+                        // eslint-disable-next-line no-undef
+                        const keySpan = document.createElement('span');
+                        keySpan.className = 'inspector-key';
+                        keySpan.textContent = this.formatKey(key);
+                        errorRow.appendChild(keySpan);
+                        
+                        // eslint-disable-next-line no-undef
+                        const separator = document.createElement('span');
+                        separator.className = 'inspector-separator';
+                        separator.textContent = ': ';
+                        errorRow.appendChild(separator);
+                        
+                        // eslint-disable-next-line no-undef
+                        const errorSpan = document.createElement('span');
+                        errorSpan.className = 'inspector-error';
+                        errorSpan.textContent = '[Error accessing property]';
+                        errorSpan.style.color = '#c41a16';
+                        errorSpan.style.fontStyle = 'italic';
+                        errorRow.appendChild(errorSpan);
+                        
+                        errorChild.appendChild(errorRow);
+                        children.appendChild(errorChild);
+                    }
+                });
+            } catch {
+                // Don't render anything if Object.keys() throws
             }
 
-            keys.forEach(key => {
-                const child = this.renderNode(value[key] as InspectableValue, key, depth, context);
-                children.appendChild(child);
-            });
-
             if (this.options.showPrototype) {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                const proto = Object.getPrototypeOf(value);
-                if (proto && proto !== Object.prototype) {
-                    const protoNode = this.renderNode(proto as InspectableValue, '__proto__', depth, context);
-                    protoNode.classList.add('inspector-prototype');
-                    children.appendChild(protoNode);
+                try {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    const proto = Object.getPrototypeOf(value);
+                    if (proto && proto !== Object.prototype && proto !== Function.prototype) {
+                        const protoNode = this.renderNode(proto as InspectableValue, '__proto__', depth, context);
+                        protoNode.classList.add('inspector-prototype');
+                        children.appendChild(protoNode);
+                    }
+                } catch {
+                    // Skip prototype if getPrototypeOf throws
                 }
             }
         }
