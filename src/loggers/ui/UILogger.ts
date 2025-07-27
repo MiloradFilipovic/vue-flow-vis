@@ -44,12 +44,11 @@ export class UILogger implements Logger {
         
         this.uiManager = new UIManager(callbacks);
         
-        // Initialize ObjectInspector and inject styles once
+        // Initialize ObjectInspector
         this.objectInspector = new ObjectInspector({
             expandDepth: 1,
             maxDepth: 10,
         });
-        ObjectInspector.injectStyles();
         
         this.showPlaceholderText();
     }
