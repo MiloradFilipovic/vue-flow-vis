@@ -4,6 +4,8 @@
  * Copyright (c) 2025 Milorad Filipovic
  */
 
+import { objectInspectorTheme } from './objectInspector.theme';
+
 export interface ObjectInspectorOptions {
     /** Number of levels to auto-expand (default: 1) */
     expandDepth?: number;
@@ -73,13 +75,13 @@ export class ObjectInspector {
     public render(obj: InspectableValue, key: string | number | null = null, depth: number = 0): HTMLElement {
         // eslint-disable-next-line no-undef
         const container = document.createElement('div');
-        container.style.fontFamily = "'Consolas', 'Monaco', 'Courier New', monospace";
-        container.style.fontSize = "12px";
-        container.style.lineHeight = "1.4";
-        container.style.color = "#333";
-        container.style.backgroundColor = "#fff";
-        container.style.padding = "0 8px";
-        container.style.borderRadius = "4px";
+        container.style.fontFamily = objectInspectorTheme.fonts.primary;
+        container.style.fontSize = objectInspectorTheme.fontSizes.base;
+        container.style.lineHeight = objectInspectorTheme.lineHeight;
+        container.style.color = objectInspectorTheme.colors.primaryText;
+        container.style.backgroundColor = objectInspectorTheme.colors.containerBackground;
+        container.style.padding = `${objectInspectorTheme.spacing.none} ${objectInspectorTheme.spacing.md}`;
+        container.style.borderRadius = objectInspectorTheme.borderRadius.sm;
         container.style.overflow = "auto";
         container.style.boxSizing = "border-box";
         
@@ -158,8 +160,8 @@ export class ObjectInspector {
     private renderNode(value: InspectableValue, key: string | number | null, depth: number, context: RenderContext): HTMLElement {
         // eslint-disable-next-line no-undef
         const node = document.createElement('div');
-        node.style.margin = "0";
-        node.style.padding = "0";
+        node.style.margin = objectInspectorTheme.spacing.none;
+        node.style.padding = objectInspectorTheme.spacing.none;
 
         // Prevent stack overflow by limiting maximum depth
         if (depth > this.options.maxDepth) {
@@ -167,23 +169,23 @@ export class ObjectInspector {
             const row = document.createElement('div');
             row.style.display = "flex";
             row.style.alignItems = "center";
-            row.style.padding = "2px 0";
+            row.style.padding = `${objectInspectorTheme.spacing.xs} ${objectInspectorTheme.spacing.none}`;
             row.style.position = "relative";
-            row.onmouseenter = (): void => { row.style.backgroundColor = "#f0f0f0"; };
+            row.onmouseenter = (): void => { row.style.backgroundColor = objectInspectorTheme.colors.rowHoverBackground; };
             row.onmouseleave = (): void => { row.style.backgroundColor = "transparent"; };
             
             if (key !== null) {
                 // eslint-disable-next-line no-undef
                 const keySpan = document.createElement('span');
-                keySpan.style.color = "#881391";
-                keySpan.style.marginRight = "4px";
+                keySpan.style.color = objectInspectorTheme.colors.keyColor;
+                keySpan.style.marginRight = objectInspectorTheme.spacing.sm;
                 keySpan.textContent = this.formatKey(key);
                 row.appendChild(keySpan);
 
                 // eslint-disable-next-line no-undef
                 const separator = document.createElement('span');
-                separator.style.color = "#666";
-                separator.style.marginRight = "4px";
+                separator.style.color = objectInspectorTheme.colors.separatorColor;
+                separator.style.marginRight = objectInspectorTheme.spacing.sm;
                 separator.textContent = ': ';
                 row.appendChild(separator);
             }
@@ -191,7 +193,7 @@ export class ObjectInspector {
             // eslint-disable-next-line no-undef
             const maxDepthSpan = document.createElement('span');
             maxDepthSpan.textContent = '[Maximum depth reached]';
-            maxDepthSpan.style.color = '#999';
+            maxDepthSpan.style.color = objectInspectorTheme.colors.maxDepthColor;
             maxDepthSpan.style.fontStyle = 'italic';
             row.appendChild(maxDepthSpan);
             
@@ -203,15 +205,15 @@ export class ObjectInspector {
         const row = document.createElement('div');
         row.style.display = "flex";
         row.style.alignItems = "center";
-        row.style.padding = "2px 0";
+        row.style.padding = `${objectInspectorTheme.spacing.xs} ${objectInspectorTheme.spacing.none}`;
         row.style.position = "relative";
-        row.onmouseenter = (): void => { row.style.backgroundColor = "#f0f0f0"; };
+        row.onmouseenter = (): void => { row.style.backgroundColor = objectInspectorTheme.colors.rowHoverBackground; };
         row.onmouseleave = (): void => { row.style.backgroundColor = "transparent"; };
 
         // eslint-disable-next-line no-undef
         const toggle = document.createElement('span');
-        toggle.style.width = "12px";
-        toggle.style.height = "12px";
+        toggle.style.width = objectInspectorTheme.layout.arrowSize;
+        toggle.style.height = objectInspectorTheme.layout.arrowSize;
         toggle.style.cursor = "pointer";
         toggle.style.flexShrink = "0";
         toggle.style.position = "relative";
@@ -220,15 +222,15 @@ export class ObjectInspector {
         const autoExpand = depth < this.options.expandDepth;
 
         if (isExpandable) {
-            toggle.style.top = autoExpand ? "0" : "-2px";
+            toggle.style.top = autoExpand ? objectInspectorTheme.spacing.none : `-${objectInspectorTheme.spacing.xs}`;
             // eslint-disable-next-line no-undef
             const arrow = document.createElement('span');
             arrow.textContent = '▶';
             arrow.style.position = "absolute";
             arrow.style.left = "0";
-            arrow.style.fontSize = "10px";
-            arrow.style.color = "#666";
-            arrow.style.transition = "transform 0.1s ease";
+            arrow.style.fontSize = objectInspectorTheme.fontSizes.small;
+            arrow.style.color = objectInspectorTheme.colors.arrowColor;
+            arrow.style.transition = objectInspectorTheme.transitions.fast;
             arrow.style.transform = autoExpand ? "rotate(90deg)" : "rotate(0deg)";
             toggle.appendChild(arrow);
             toggle.addEventListener('click', () => this.toggleExpand(toggle, node));
@@ -241,15 +243,15 @@ export class ObjectInspector {
         if (key !== null) {
             // eslint-disable-next-line no-undef
             const keySpan = document.createElement('span');
-            keySpan.style.color = "#881391";
-            keySpan.style.marginRight = "4px";
+            keySpan.style.color = objectInspectorTheme.colors.keyColor;
+            keySpan.style.marginRight = objectInspectorTheme.spacing.sm;
             keySpan.textContent = this.formatKey(key);
             row.appendChild(keySpan);
 
             // eslint-disable-next-line no-undef
             const separator = document.createElement('span');
-            separator.style.color = "#666";
-            separator.style.marginRight = "4px";
+            separator.style.color = objectInspectorTheme.colors.separatorColor;
+            separator.style.marginRight = objectInspectorTheme.spacing.sm;
             separator.textContent = ': ';
             row.appendChild(separator);
         }
@@ -270,9 +272,9 @@ export class ObjectInspector {
                 // True circular reference
                 // eslint-disable-next-line no-undef
                 const circular = document.createElement('span');
-                circular.style.color = "#c41a16";
-                circular.style.fontStyle = "italic";
+                circular.style.color = objectInspectorTheme.colors.circularRefColor;
                 circular.textContent = ' [Circular]';
+                circular.style.marginLeft = objectInspectorTheme.spacing.sm;
                 row.appendChild(circular);
             } else {
                 // Add preview for non-circular objects
@@ -287,10 +289,10 @@ export class ObjectInspector {
                 if (this.options.showSharedRefs && isShared) {
                     // eslint-disable-next-line no-undef
                     const shared = document.createElement('span');
-                    shared.style.color = "#0066cc";
-                    shared.style.fontSize = "10px";
-                    shared.style.opacity = "0.7";
-                    shared.style.marginLeft = "4px";
+                    shared.style.color = objectInspectorTheme.colors.sharedRefColor;
+                    shared.style.fontSize = objectInspectorTheme.fontSizes.small;
+                    shared.style.opacity = objectInspectorTheme.opacity.sharedRef;
+                    shared.style.marginLeft = objectInspectorTheme.spacing.sm;
                     shared.textContent = ` <ref *${refInfo.id}>`;
                     shared.title = `This object appears ${refInfo.count} times`;
                     row.appendChild(shared);
@@ -316,35 +318,35 @@ export class ObjectInspector {
     private renderValue(value: InspectableValue): HTMLElement {
         // eslint-disable-next-line no-undef
         const span = document.createElement('span');
-        span.style.color = "#1a1aa6"; // default color
+        span.style.color = objectInspectorTheme.colors.defaultValueColor; // default color
 
         const type = this.getType(value);
 
         switch (type) {
             case 'string':
-                span.style.color = "#c41a16";
+                span.style.color = objectInspectorTheme.colors.stringColor;
                 span.textContent = `"${this.escapeString(value as string)}"`;
                 break;
             case 'number':
-                span.style.color = "#1c00cf";
+                span.style.color = objectInspectorTheme.colors.numberColor;
                 span.textContent = String(value as number | boolean);
                 break;
             case 'boolean':
-                span.style.color = "#0d22aa";
+                span.style.color = objectInspectorTheme.colors.booleanColor;
                 span.textContent = String(value as number | boolean);
                 break;
             case 'null':
             case 'undefined':
-                span.style.color = "#808080";
+                span.style.color = objectInspectorTheme.colors.nullUndefinedColor;
                 span.textContent = type;
                 break;
             case 'function':
-                span.style.color = "#13a10e";
+                span.style.color = objectInspectorTheme.colors.functionColor;
                 span.style.fontStyle = "italic";
                 span.textContent = this.formatFunction(value as (...args: unknown[]) => unknown);
                 break;
             case 'symbol':
-                span.style.color = "#c41a16";
+                span.style.color = objectInspectorTheme.colors.symbolColor;
                 span.style.fontStyle = "italic";
                 span.textContent = (value as symbol).toString();
                 break;
@@ -377,9 +379,9 @@ export class ObjectInspector {
     private renderPreview(value: InspectableValue): HTMLElement | null {
         // eslint-disable-next-line no-undef
         const preview = document.createElement('span');
-        preview.style.color = "#666";
+        preview.style.color = objectInspectorTheme.colors.previewColor;
         preview.style.fontStyle = "italic";
-        preview.style.marginLeft = "4px";
+        preview.style.marginLeft = objectInspectorTheme.spacing.sm;
 
         if (isArray(value)) {
             if (value.length === 0) {
@@ -408,7 +410,7 @@ export class ObjectInspector {
     private renderChildren(value: InspectableValue, depth: number, context: RenderContext): HTMLElement {
         // eslint-disable-next-line no-undef
         const children = document.createElement('div');
-        children.style.marginLeft = "16px";
+        children.style.marginLeft = objectInspectorTheme.layout.indentSize;
         children.style.display = "none";
 
         if (isArray(value)) {
@@ -433,35 +435,35 @@ export class ObjectInspector {
                         // Render error placeholder for properties that throw
                         // eslint-disable-next-line no-undef
                         const errorChild = document.createElement('div');
-                        errorChild.style.margin = "0";
-                        errorChild.style.padding = "0";
+                        errorChild.style.margin = objectInspectorTheme.spacing.none;
+                        errorChild.style.padding = objectInspectorTheme.spacing.none;
                         
                         // eslint-disable-next-line no-undef
                         const errorRow = document.createElement('div');
                         errorRow.style.display = "flex";
                         errorRow.style.alignItems = "center";
-                        errorRow.style.padding = "2px 0";
+                        errorRow.style.padding = `${objectInspectorTheme.spacing.xs} ${objectInspectorTheme.spacing.none}`;
                         errorRow.style.position = "relative";
-                        errorRow.onmouseenter = (): void => { errorRow.style.backgroundColor = "#f0f0f0"; };
+                        errorRow.onmouseenter = (): void => { errorRow.style.backgroundColor = objectInspectorTheme.colors.rowHoverBackground; };
                         errorRow.onmouseleave = (): void => { errorRow.style.backgroundColor = "transparent"; };
                         
                         // eslint-disable-next-line no-undef
                         const keySpan = document.createElement('span');
-                        keySpan.style.color = "#881391";
-                        keySpan.style.marginRight = "4px";
+                        keySpan.style.color = objectInspectorTheme.colors.keyColor;
+                        keySpan.style.marginRight = objectInspectorTheme.spacing.sm;
                         keySpan.textContent = this.formatKey(key);
                         errorRow.appendChild(keySpan);
                         
                         // eslint-disable-next-line no-undef
                         const separator = document.createElement('span');
-                        separator.style.color = "#666";
-                        separator.style.marginRight = "4px";
+                        separator.style.color = objectInspectorTheme.colors.separatorColor;
+                        separator.style.marginRight = objectInspectorTheme.spacing.sm;
                         separator.textContent = ': ';
                         errorRow.appendChild(separator);
                         
                         // eslint-disable-next-line no-undef
                         const errorSpan = document.createElement('span');
-                        errorSpan.style.color = "#c41a16";
+                        errorSpan.style.color = objectInspectorTheme.colors.errorColor;
                         errorSpan.style.fontStyle = "italic";
                         errorSpan.textContent = '[Error accessing property]';
                         errorRow.appendChild(errorSpan);
@@ -480,7 +482,7 @@ export class ObjectInspector {
                     const proto = Object.getPrototypeOf(value);
                     if (proto && proto !== Object.prototype && proto !== Function.prototype) {
                         const protoNode = this.renderNode(proto as InspectableValue, '__proto__', depth, context);
-                        protoNode.style.opacity = "0.6";
+                        protoNode.style.opacity = objectInspectorTheme.opacity.prototype;
                         protoNode.style.fontStyle = "italic";
                         children.appendChild(protoNode);
                     }
