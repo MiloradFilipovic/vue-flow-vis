@@ -637,14 +637,170 @@ export class UILogger implements Logger {
     private toggleTriggeredEvents(): void {
         this.showTriggeredEvents = !this.showTriggeredEvents;
         if (this.selectedComponent) {
-            this.displayComponentEvents(this.selectedComponent);
+            this.refreshEventsList(this.selectedComponent);
         }
     }
 
     private toggleTrackedEvents(): void {
         this.showTrackedEvents = !this.showTrackedEvents;
         if (this.selectedComponent) {
-            this.displayComponentEvents(this.selectedComponent);
+            this.refreshEventsList(this.selectedComponent);
+        }
+    }
+
+    private refreshEventsList(componentName: string): void {
+        const group = this.componentGroups.get(componentName);
+        if (!group) return;
+
+        const eventsListArea = document.querySelector(`#vue-flow-vis-events-list-area-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`) as HTMLDivElement;
+        if (!eventsListArea) return;
+
+        // Update filter button colors
+        const triggerButton = document.querySelector(`#vue-flow-vis-trigger-button-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`) as HTMLButtonElement;
+        if (triggerButton) {
+            triggerButton.style.color = this.showTriggeredEvents ? theme.colors.triggered : theme.colors.textDisabled;
+            triggerButton.title = this.showTriggeredEvents ? "Hide render triggered events" : "Show render triggered events";
+        }
+
+        const trackedButton = document.querySelector(`#vue-flow-vis-tracked-button-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`) as HTMLButtonElement;
+        if (trackedButton) {
+            trackedButton.style.color = this.showTrackedEvents ? theme.colors.tracked : theme.colors.textDisabled;
+            trackedButton.title = this.showTrackedEvents ? "Hide render tracked events" : "Show render tracked events";
+        }
+
+        // Find and update only the scrollable container
+        const scrollableContainer = eventsListArea.querySelector(`#vue-flow-vis-scrollable-container-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`) as HTMLDivElement;
+        if (!scrollableContainer) return;
+
+        // Clear the scrollable container
+        scrollableContainer.innerHTML = "";
+
+        // Check if there are any visible events
+        const visibleEvents = group.events.filter(event => 
+            (event.type === 'tracked' && this.showTrackedEvents) || 
+            (event.type === 'triggered' && this.showTriggeredEvents)
+        );
+
+        if (visibleEvents.length === 0) {
+            const noEvents = document.createElement("p");
+            noEvents.id = `vue-flow-vis-no-events-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
+            noEvents.textContent = group.events.length === 0 ? "No events recorded yet" : "No events to display";
+            noEvents.style.color = theme.colors.textMuted;
+            noEvents.style.fontStyle = "italic";
+            noEvents.style.margin = "0";
+            noEvents.style.padding = theme.spacing.xl;
+            scrollableContainer.appendChild(noEvents);
+        } else {
+            const eventsContainer = document.createElement("div");
+            eventsContainer.id = `vue-flow-vis-events-container-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
+            eventsContainer.style.display = "flex";
+            eventsContainer.style.flexDirection = "column";
+            eventsContainer.style.gap = theme.spacing.md;
+            eventsContainer.style.width = "100%";
+            eventsContainer.style.boxSizing = "border-box";
+
+            group.events.forEach((event, eventIndex) => {
+                // Filter events based on visibility state
+                const shouldShow = (event.type === 'tracked' && this.showTrackedEvents) || 
+                                 (event.type === 'triggered' && this.showTriggeredEvents);
+                
+                if (!shouldShow) {
+                    return;
+                }
+
+                const eventDiv = document.createElement("div");
+                eventDiv.id = `vue-flow-vis-event-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
+                eventDiv.style.display = "flex";
+                eventDiv.style.alignItems = "center";
+                eventDiv.style.padding = theme.spacing.md;
+                eventDiv.style.border = `${theme.borderWidths.thin} solid ${theme.colors.border}`;
+                eventDiv.style.borderRadius = theme.borderRadius.md;
+                eventDiv.style.fontFamily = theme.fonts.primary;
+                eventDiv.style.fontSize = theme.fontSizes.sm;
+                eventDiv.style.cursor = "pointer";
+                eventDiv.style.transition = `background-color ${theme.transitions.normal}`;
+                eventDiv.style.width = `calc(100% - ${theme.spacing.xl})`;
+                eventDiv.style.boxSizing = "border-box";
+                eventDiv.style.marginLeft = theme.spacing.md;
+                eventDiv.style.marginRight = theme.spacing.md;
+
+                // Check if this event is selected and set initial background
+                const isSelected = this.selectedEvent && 
+                    this.selectedEvent.eventIndex === eventIndex && 
+                    this.selectedEvent.componentName === componentName;
+
+                eventDiv.style.backgroundColor = isSelected ? theme.colors.backgroundHover : theme.colors.backgroundSecondary;
+
+                eventDiv.onmouseenter = (): void => {
+                    eventDiv.style.backgroundColor = theme.colors.backgroundHover;
+                };
+
+                eventDiv.onmouseleave = (): void => {
+                    // Recalculate selection state on mouse leave
+                    const currentlySelected = this.selectedEvent && 
+                        this.selectedEvent.eventIndex === eventIndex && 
+                        this.selectedEvent.componentName === componentName;
+                    
+                    eventDiv.style.backgroundColor = currentlySelected ? theme.colors.backgroundHover : theme.colors.backgroundSecondary;
+                };
+
+                eventDiv.onclick = (): void => {
+                    this.selectEvent({
+                        type: event.type,
+                        timestamp: event.timestamp,
+                        componentName: componentName,
+                        eventData: event.eventData,
+                        eventIndex: eventIndex
+                    });
+                };
+
+                const iconSpan = document.createElement("span");
+                iconSpan.id = `vue-flow-vis-event-icon-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
+                iconSpan.innerHTML = event.type === 'tracked' ? createTrackIcon(14) : createTriggerIcon(14);
+                iconSpan.style.color = event.type === 'tracked' ? theme.colors.tracked : theme.colors.triggered;
+                iconSpan.style.marginRight = theme.spacing.md;
+                iconSpan.style.position = "relative";
+                iconSpan.style.top = theme.positioning.iconOffset2;
+                iconSpan.style.flexShrink = "0";
+
+                const eventSpan = document.createElement("span");
+                eventSpan.id = `vue-flow-vis-event-span-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
+                eventSpan.textContent = event.type === 'tracked' ? 'Render tracked' : 'Render triggered';
+                eventSpan.style.color = event.type === 'tracked' ? theme.colors.tracked : theme.colors.triggered;
+                eventSpan.style.flex = "1";
+
+                const timestampContainer = document.createElement("span");
+                timestampContainer.id = `vue-flow-vis-event-timestamp-container-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
+                timestampContainer.style.display = "flex";
+                timestampContainer.style.alignItems = "center";
+                timestampContainer.style.flexShrink = "0";
+                timestampContainer.style.gap = theme.spacing.xs;
+
+                const clockIcon = document.createElement("span");
+                clockIcon.id = `vue-flow-vis-event-clock-icon-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
+                clockIcon.innerHTML = createClockIcon(12);
+                clockIcon.style.color = theme.colors.textMuted;
+                clockIcon.style.flexShrink = "0";
+                clockIcon.style.position = "relative";
+                clockIcon.style.top = theme.positioning.iconOffset;
+
+                const timestampSpan = document.createElement("span");
+                timestampSpan.id = `vue-flow-vis-event-timestamp-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
+                timestampSpan.textContent = event.timestamp;
+                timestampSpan.style.color = theme.colors.textMuted;
+                timestampSpan.style.fontSize = theme.fontSizes.xs;
+                timestampSpan.style.fontFamily = theme.fonts.primary;
+
+                timestampContainer.appendChild(clockIcon);
+                timestampContainer.appendChild(timestampSpan);
+
+                eventDiv.appendChild(iconSpan);
+                eventDiv.appendChild(eventSpan);
+                eventDiv.appendChild(timestampContainer);
+                eventsContainer.appendChild(eventDiv);
+            });
+
+            scrollableContainer.appendChild(eventsContainer);
         }
     }
 
