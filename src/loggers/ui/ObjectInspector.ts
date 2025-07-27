@@ -5,6 +5,7 @@
  */
 
 import { objectInspectorTheme } from './objectInspector.theme';
+import { objectInspectorStrings } from './ObjectInspector.strings';
 
 export interface ObjectInspectorOptions {
     /** Number of levels to auto-expand (default: 1) */
@@ -186,13 +187,13 @@ export class ObjectInspector {
                 const separator = document.createElement('span');
                 separator.style.color = objectInspectorTheme.colors.separatorColor;
                 separator.style.marginRight = objectInspectorTheme.spacing.sm;
-                separator.textContent = ': ';
+                separator.textContent = objectInspectorStrings.separator;
                 row.appendChild(separator);
             }
 
             // eslint-disable-next-line no-undef
             const maxDepthSpan = document.createElement('span');
-            maxDepthSpan.textContent = '[Maximum depth reached]';
+            maxDepthSpan.textContent = objectInspectorStrings.maxDepthReached;
             maxDepthSpan.style.color = objectInspectorTheme.colors.maxDepthColor;
             maxDepthSpan.style.fontStyle = 'italic';
             row.appendChild(maxDepthSpan);
@@ -225,7 +226,7 @@ export class ObjectInspector {
             toggle.style.top = autoExpand ? objectInspectorTheme.spacing.none : `-${objectInspectorTheme.spacing.xs}`;
             // eslint-disable-next-line no-undef
             const arrow = document.createElement('span');
-            arrow.textContent = '▶';
+            arrow.textContent = objectInspectorStrings.expandArrow;
             arrow.style.position = "absolute";
             arrow.style.left = "0";
             arrow.style.fontSize = objectInspectorTheme.fontSizes.small;
@@ -273,7 +274,7 @@ export class ObjectInspector {
                 // eslint-disable-next-line no-undef
                 const circular = document.createElement('span');
                 circular.style.color = objectInspectorTheme.colors.circularRefColor;
-                circular.textContent = ' [Circular]';
+                circular.textContent = objectInspectorStrings.circularReference;
                 circular.style.marginLeft = objectInspectorTheme.spacing.sm;
                 row.appendChild(circular);
             } else {
@@ -293,8 +294,8 @@ export class ObjectInspector {
                     shared.style.fontSize = objectInspectorTheme.fontSizes.small;
                     shared.style.opacity = objectInspectorTheme.opacity.sharedRef;
                     shared.style.marginLeft = objectInspectorTheme.spacing.sm;
-                    shared.textContent = ` <ref *${refInfo.id}>`;
-                    shared.title = `This object appears ${refInfo.count} times`;
+                    shared.textContent = `${objectInspectorStrings.refPrefix}${refInfo.id}${objectInspectorStrings.refSuffix}`;
+                    shared.title = `${objectInspectorStrings.refCountPrefix}${refInfo.count}${objectInspectorStrings.refCountSuffix}`;
                     row.appendChild(shared);
                 }
 
@@ -351,7 +352,7 @@ export class ObjectInspector {
                 span.textContent = (value as symbol).toString();
                 break;
             case 'array':
-                span.textContent = `Array(${(value as unknown[]).length})`;
+                span.textContent = `${objectInspectorStrings.arrayPrefix}${(value as unknown[]).length}${objectInspectorStrings.arraySuffix}`;
                 break;
             case 'object': {
                 const objValue = value as Record<string, unknown>;
@@ -359,7 +360,7 @@ export class ObjectInspector {
                 if (constructor && constructor !== 'Object') {
                     span.textContent = constructor;
                 } else {
-                    span.textContent = 'Object';
+                    span.textContent = objectInspectorStrings.objectLabel;
                 }
                 break;
             }
@@ -367,7 +368,7 @@ export class ObjectInspector {
                 if (value == null) {
                     span.textContent = '';
                 } else if (typeof value === 'object') {
-                    span.textContent = '[object]';
+                    span.textContent = objectInspectorStrings.objectFallback;
                 } else {
                     span.textContent = String(value);
                 }
@@ -385,19 +386,19 @@ export class ObjectInspector {
 
         if (isArray(value)) {
             if (value.length === 0) {
-                preview.textContent = ' []';
+                preview.textContent = objectInspectorStrings.emptyArray;
             } else {
                 const items = value.slice(0, 3).map(v => this.formatPreviewValue(v as InspectableValue));
-                if (value.length > 3) items.push('...');
+                if (value.length > 3) items.push(objectInspectorStrings.previewEllipsis);
                 preview.textContent = ` [${items.join(', ')}]`;
             }
         } else if (isObjectWithKeys(value)) {
             const keys = Object.keys(value);
             if (keys.length === 0) {
-                preview.textContent = ' {}';
+                preview.textContent = objectInspectorStrings.emptyObject;
             } else {
                 const items = keys.slice(0, 3).map(k => `${k}: ${this.formatPreviewValue(value[k] as InspectableValue)}`);
-                if (keys.length > 3) items.push('...');
+                if (keys.length > 3) items.push(objectInspectorStrings.previewEllipsis);
                 preview.textContent = ` {${items.join(', ')}}`;
             }
         } else {
@@ -458,14 +459,14 @@ export class ObjectInspector {
                         const separator = document.createElement('span');
                         separator.style.color = objectInspectorTheme.colors.separatorColor;
                         separator.style.marginRight = objectInspectorTheme.spacing.sm;
-                        separator.textContent = ': ';
+                        separator.textContent = objectInspectorStrings.separator;
                         errorRow.appendChild(separator);
                         
                         // eslint-disable-next-line no-undef
                         const errorSpan = document.createElement('span');
                         errorSpan.style.color = objectInspectorTheme.colors.errorColor;
                         errorSpan.style.fontStyle = "italic";
-                        errorSpan.textContent = '[Error accessing property]';
+                        errorSpan.textContent = objectInspectorStrings.errorAccessingProperty;
                         errorRow.appendChild(errorSpan);
                         
                         errorChild.appendChild(errorRow);
@@ -530,10 +531,10 @@ export class ObjectInspector {
         const match = str.match(/^(async\s+)?(?:function\s*)?([^(]*)\(/);
         if (match) {
             const async = match[1] || '';
-            const name = match[2].trim() || 'anonymous';
-            return `${async}ƒ ${name}()`;
+            const name = match[2].trim() || objectInspectorStrings.anonymousFunction;
+            return `${async}${objectInspectorStrings.functionPrefix}${name}${objectInspectorStrings.functionSuffix}`;
         }
-        return 'ƒ()';
+        return objectInspectorStrings.defaultFunction;
     }
 
     private escapeString(str: string): string {
@@ -556,19 +557,19 @@ export class ObjectInspector {
             case 'boolean':
                 return String(value as number | boolean);
             case 'null':
-                return 'null';
+                return objectInspectorStrings.nullValue;
             case 'undefined':
-                return 'undefined';
+                return objectInspectorStrings.undefinedValue;
             case 'function':
-                return 'ƒ';
+                return objectInspectorStrings.functionSymbol;
             case 'symbol':
-                return 'Symbol';
+                return objectInspectorStrings.symbolLabel;
             case 'array':
-                return `Array(${(value as unknown[]).length})`;
+                return `${objectInspectorStrings.arrayPrefix}${(value as unknown[]).length}${objectInspectorStrings.arraySuffix}`;
             case 'object':
-                return '{…}';
+                return objectInspectorStrings.objectPreview;
             default:
-                return '…';
+                return objectInspectorStrings.defaultPreview;
         }
     }
 
