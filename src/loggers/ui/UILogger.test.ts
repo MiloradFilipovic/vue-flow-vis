@@ -406,7 +406,7 @@ describe('UILogger', () => {
       expect(contentArea).toBeTruthy()
       
       // Verify ObjectInspector is rendered
-      const objectInspector = contentArea?.querySelector('.object-inspector')
+      const objectInspector = contentArea?.querySelector('#object-inspector')
       expect(objectInspector).toBeTruthy()
     })
 

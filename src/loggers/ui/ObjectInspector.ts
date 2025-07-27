@@ -76,6 +76,7 @@ export class ObjectInspector {
     public render(obj: InspectableValue, key: string | number | null = null, depth: number = 0): HTMLElement {
         // eslint-disable-next-line no-undef
         const container = document.createElement('div');
+        container.id = 'object-inspector';
         container.style.fontFamily = objectInspectorTheme.fonts.primary;
         container.style.fontSize = objectInspectorTheme.fontSizes.base;
         container.style.lineHeight = objectInspectorTheme.lineHeight;
