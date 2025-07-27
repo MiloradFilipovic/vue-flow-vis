@@ -551,16 +551,18 @@ export class ObjectInspector {
             .inspector-toggle {
                 width: 12px;
                 height: 12px;
-                margin-right: 4px;
                 cursor: pointer;
                 flex-shrink: 0;
                 position: relative;
             }
 
+            .inspector-toggle:not(.expanded) {
+                top: -2px;
+            }
+
             .inspector-toggle::before {
                 content: '▶';
                 position: absolute;
-                top: -2px;
                 left: 0;
                 font-size: 10px;
                 color: #666;
@@ -644,8 +646,8 @@ export class ObjectInspector {
             .inspector-shared {
                 color: #0066cc;
                 font-size: 10px;
-                font-style: italic;
                 opacity: 0.7;
+                margin-left: 4px;
             }
         `;
     }
