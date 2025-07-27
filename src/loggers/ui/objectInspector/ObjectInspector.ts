@@ -499,7 +499,12 @@ export class ObjectInspector {
 
     private toggleExpand(toggle: HTMLElement, node: HTMLElement): void {
         const arrow = toggle.querySelector('span');
-        const children = node.querySelector('div:last-child') as HTMLElement;
+        // Find the children container by looking for a div with marginLeft style (indented children)
+        const children = Array.from(node.children).find(child => 
+            child instanceof HTMLElement && 
+            child.tagName === 'DIV' && 
+            child.style.marginLeft === objectInspectorTheme.layout.indentSize
+        ) as HTMLElement;
         
         if (arrow && children) {
             const isExpanded = children.style.display === 'block';
