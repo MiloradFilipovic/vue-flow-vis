@@ -5,7 +5,7 @@ import { EVENT_DETAILS_HEADER_DEBUGGER_EVENT, EVENT_DETAILS_HEADER_ORIGINAL, MAI
 import { UIManager, UIManagerCallbacks } from "./UIManager";
 import { theme } from "./theme";
 import { VUE_DEBUGGER_EVENT_URL } from "./constants";
-import { ObjectInspector } from "./ObjectInspector";
+import { ObjectInspector } from "./objectInspector/ObjectInspector";
 
 type ComponentGroup = {
     sidebarItem: HTMLDivElement;

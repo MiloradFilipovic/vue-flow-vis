@@ -4,7 +4,7 @@
  * Copyright (c) 2025 Milorad Filipovic
  */
 
-import { objectInspectorTheme } from './objectInspector.theme';
+import { objectInspectorTheme } from './themes/objectInspector.flowvis.theme';
 import { objectInspectorStrings } from './ObjectInspector.strings';
 
 export interface ObjectInspectorOptions {
