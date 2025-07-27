@@ -7,6 +7,12 @@
 import { objectInspectorTheme } from './themes/objectInspector.flowvis.theme';
 import { objectInspectorStrings } from './ObjectInspector.strings';
 
+type Enumerate<N extends number, Acc extends number[] = []> = Acc['length'] extends N
+  ? Acc[number]
+  : Enumerate<N, [...Acc, Acc['length']]>
+
+type IntRange<F extends number, T extends number> = Exclude<Enumerate<T>, Enumerate<F>>
+
 export interface ObjectInspectorOptions {
     /** Number of levels to auto-expand (default: 1) */
     expandDepth?: number;
@@ -16,8 +22,8 @@ export interface ObjectInspectorOptions {
     sortKeys?: boolean;
     /** Show indicators for shared references (default: true) */
     showSharedRefs?: boolean;
-    /** Maximum recursion depth to prevent stack overflow (default: 100) */
-    maxDepth?: number;
+    /** Maximum recursion depth to prevent stack overflow (1-10, default: 10) */
+    maxDepth?: IntRange<1, 11>;
 }
 
 type ValueType = 'string' | 'number' | 'boolean' | 'null' | 'undefined' | 
@@ -62,7 +68,7 @@ export class ObjectInspector {
             showPrototype: options.showPrototype ?? false,
             sortKeys: options.sortKeys ?? false,
             showSharedRefs: options.showSharedRefs ?? true,
-            maxDepth: options.maxDepth ?? 100
+            maxDepth: options.maxDepth ?? 10
         };
     }
 
@@ -166,6 +172,7 @@ export class ObjectInspector {
         node.style.padding = objectInspectorTheme.spacing.none;
 
         // Prevent stack overflow by limiting maximum depth
+        // FIXME: Becomes slow for depths > 10
         if (depth > this.options.maxDepth) {
             // eslint-disable-next-line no-undef
             const row = document.createElement('div');
