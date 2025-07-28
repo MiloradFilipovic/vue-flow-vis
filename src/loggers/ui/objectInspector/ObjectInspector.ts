@@ -579,44 +579,11 @@ export class ObjectInspector {
     private renderChildrenLazy(container: HTMLElement, value: InspectableValue, depth: number, context: RenderContext): void {
         // Clear lazy flag since we're rendering now
         container.dataset.lazy = 'false';
-        
-        // More aggressive limits based on depth
-        let maxItems: number;
-        let maxKeys: number;
-        
-        if (depth > 10) {
-            maxItems = 5;
-            maxKeys = 10;
-        } else if (depth > 8) {
-            maxItems = 15;
-            maxKeys = 25;
-        } else if (depth > 5) {
-            maxItems = 30;
-            maxKeys = 50;
-        } else {
-            maxItems = 100;
-            maxKeys = 200;
-        }
 
         if (isArray(value)) {
-            const itemsToRender = Math.min(value.length, maxItems);
-            
-            for (let i = 0; i < itemsToRender; i++) {
+            for (let i = 0; i < value.length; i++) {
                 const child = this.renderNode(value[i] as InspectableValue, i, depth, context);
                 container.appendChild(child);
-            }
-            
-            // Show truncation indicator if we've limited the items
-            if (itemsToRender < value.length) {
-                // eslint-disable-next-line no-undef
-                const truncated = document.createElement('div');
-                truncated.style.padding = objectInspectorTheme.spacing.xs;
-                truncated.style.color = objectInspectorTheme.colors.maxDepthColor;
-                truncated.style.fontStyle = 'italic';
-                truncated.textContent = `... ${value.length - itemsToRender} more items (click to load more)`;
-                truncated.style.cursor = 'pointer';
-                truncated.onclick = (): void => this.loadMoreItems(container, value, itemsToRender, depth, context, maxItems);
-                container.appendChild(truncated);
             }
         } else if (isObjectWithKeys(value) || typeof value === 'function') {
             // Handle both objects and functions (functions can have properties)
@@ -626,9 +593,7 @@ export class ObjectInspector {
                     keys.sort();
                 }
 
-                const keysToRender = Math.min(keys.length, maxKeys);
-
-                for (let i = 0; i < keysToRender; i++) {
+                for (let i = 0; i < keys.length; i++) {
                     const key = keys[i];
                     try {
                         const propValue = (value as Record<string, unknown>)[key];
@@ -637,19 +602,6 @@ export class ObjectInspector {
                     } catch {
                         // Skip properties that throw errors when accessed
                     }
-                }
-                
-                // Show truncation indicator if we've limited the keys
-                if (keysToRender < keys.length) {
-                    // eslint-disable-next-line no-undef
-                    const truncated = document.createElement('div');
-                    truncated.style.padding = objectInspectorTheme.spacing.xs;
-                    truncated.style.color = objectInspectorTheme.colors.maxDepthColor;
-                    truncated.style.fontStyle = 'italic';
-                    truncated.textContent = `... ${keys.length - keysToRender} more properties (click to load more)`;
-                    truncated.style.cursor = 'pointer';
-                    truncated.onclick = (): void => this.loadMoreKeys(container, value as Record<string, unknown>, keys, keysToRender, depth, context, maxKeys);
-                    container.appendChild(truncated);
                 }
             } catch {
                 // Don't render anything if Object.keys() throws
@@ -672,47 +624,6 @@ export class ObjectInspector {
         }
     }
 
-    private loadMoreItems(container: HTMLElement, value: unknown[], startIndex: number, depth: number, context: RenderContext, batchSize: number): void {
-        const truncatedElement = container.lastElementChild!;
-        const itemsToAdd = Math.min(batchSize, value.length - startIndex);
-        
-        for (let i = startIndex; i < startIndex + itemsToAdd; i++) {
-            const child = this.renderNode(value[i] as InspectableValue, i, depth, context);
-            container.insertBefore(child, truncatedElement);
-        }
-        
-        const newStartIndex = startIndex + itemsToAdd;
-        if (newStartIndex < value.length) {
-            (truncatedElement as HTMLElement).textContent = `... ${value.length - newStartIndex} more items (click to load more)`;
-            (truncatedElement as HTMLElement).onclick = (): void => this.loadMoreItems(container, value, newStartIndex, depth, context, batchSize);
-        } else {
-            container.removeChild(truncatedElement);
-        }
-    }
-
-    private loadMoreKeys(container: HTMLElement, value: Record<string, unknown>, keys: string[], startIndex: number, depth: number, context: RenderContext, batchSize: number): void {
-        const truncatedElement = container.lastElementChild!;
-        const keysToAdd = Math.min(batchSize, keys.length - startIndex);
-        
-        for (let i = startIndex; i < startIndex + keysToAdd; i++) {
-            const key = keys[i];
-            try {
-                const propValue = value[key];
-                const child = this.renderNode(propValue as InspectableValue, key, depth, context);
-                container.insertBefore(child, truncatedElement);
-            } catch {
-                // Skip properties that throw errors when accessed
-            }
-        }
-        
-        const newStartIndex = startIndex + keysToAdd;
-        if (newStartIndex < keys.length) {
-            (truncatedElement as HTMLElement).textContent = `... ${keys.length - newStartIndex} more properties (click to load more)`;
-            (truncatedElement as HTMLElement).onclick = (): void => this.loadMoreKeys(container, value, keys, newStartIndex, depth, context, batchSize);
-        } else {
-            container.removeChild(truncatedElement);
-        }
-    }
 
     private toggleExpand(toggle: HTMLElement, node: HTMLElement): void {
         const arrow = toggle.querySelector('span');
