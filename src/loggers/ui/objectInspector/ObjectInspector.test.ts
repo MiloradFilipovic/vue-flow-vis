@@ -4,6 +4,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { ObjectInspector, type ObjectInspectorOptions } from './ObjectInspector'
+import { objectInspectorStrings } from './ObjectInspector.strings'
 
 describe('ObjectInspector', () => {
   let inspector: ObjectInspector
@@ -17,7 +18,7 @@ describe('ObjectInspector', () => {
     // Find spans that are not the expand arrow and not italic (preview)
     for (const span of spans) {
       const htmlSpan = span as HTMLElement
-      if (htmlSpan.textContent !== '▶' && 
+      if (htmlSpan.textContent !== objectInspectorStrings.expandArrow && 
           !htmlSpan.style.cursor && 
           htmlSpan.style.fontStyle !== 'italic') {
         return htmlSpan
@@ -27,7 +28,7 @@ describe('ObjectInspector', () => {
     // Fallback to last non-arrow span
     for (let i = spans.length - 1; i >= 0; i--) {
       const span = spans[i] as HTMLElement
-      if (span.textContent !== '▶') {
+      if (span.textContent !== objectInspectorStrings.expandArrow) {
         return span
       }
     }
@@ -134,14 +135,14 @@ describe('ObjectInspector', () => {
       const result = inspector.render(null)
       const valueSpan = getValueSpan(result)
       
-      expect(valueSpan?.textContent).toBe('null')
+      expect(valueSpan?.textContent).toBe(objectInspectorStrings.nullValue)
     })
 
     it('should render undefined value', () => {
       const result = inspector.render(undefined)
       const valueSpan = getValueSpan(result)
       
-      expect(valueSpan?.textContent).toBe('undefined')
+      expect(valueSpan?.textContent).toBe(objectInspectorStrings.undefinedValue)
     })
 
     it('should render symbols', () => {
@@ -165,7 +166,7 @@ describe('ObjectInspector', () => {
       const valueSpan = getValueSpan(result)
       
       expect(valueSpan?.textContent).toContain('testFunction')
-      expect(valueSpan?.textContent).toContain('ƒ')
+      expect(valueSpan?.textContent).toContain(objectInspectorStrings.functionSymbol)
       expect(valueSpan?.style.fontStyle).toBe('italic')
     })
 
@@ -174,8 +175,8 @@ describe('ObjectInspector', () => {
       const result = inspector.render(anonymousFunc)
       const valueSpan = getValueSpan(result)
       
-      expect(valueSpan?.textContent).toContain('anonymous')
-      expect(valueSpan?.textContent).toContain('ƒ')
+      expect(valueSpan?.textContent).toContain(objectInspectorStrings.anonymousFunction)
+      expect(valueSpan?.textContent).toContain(objectInspectorStrings.functionSymbol)
     })
 
     it('should render async functions', () => {
@@ -186,7 +187,7 @@ describe('ObjectInspector', () => {
       const valueSpan = getValueSpan(result)
       
       expect(valueSpan?.textContent).toContain('asyncTest')
-      expect(valueSpan?.textContent).toContain('ƒ')
+      expect(valueSpan?.textContent).toContain(objectInspectorStrings.functionSymbol)
     })
   })
 
@@ -199,14 +200,14 @@ describe('ObjectInspector', () => {
       const result = inspector.render([])
       const valueSpan = getValueSpan(result)
       
-      expect(valueSpan?.textContent).toBe('Array(0)')
+      expect(valueSpan?.textContent).toBe(`${objectInspectorStrings.arrayPrefix}0${objectInspectorStrings.arraySuffix}`)
     })
 
     it('should render array length', () => {
       const result = inspector.render([1, 2, 3])
       const valueSpan = getValueSpan(result)
       
-      expect(valueSpan?.textContent).toBe('Array(3)')
+      expect(valueSpan?.textContent).toBe(`${objectInspectorStrings.arrayPrefix}3${objectInspectorStrings.arraySuffix}`)
     })
 
     it('should show array preview when collapsed', () => {
@@ -221,14 +222,14 @@ describe('ObjectInspector', () => {
       const result = inspector.render(longArray)
       const preview = result.querySelector('span[style*="italic"]')
       
-      expect(preview?.textContent).toContain('...')
+      expect(preview?.textContent).toContain(objectInspectorStrings.previewEllipsis)
     })
 
     it('should show empty array indicator for empty arrays', () => {
       const result = inspector.render([])
       const preview = result.querySelector('span[style*="italic"]')
       
-      expect(preview?.textContent).toBe(' []')
+      expect(preview?.textContent).toBe(objectInspectorStrings.emptyArray)
     })
   })
 
@@ -241,7 +242,7 @@ describe('ObjectInspector', () => {
       const result = inspector.render({})
       const valueSpan = getValueSpan(result)
       
-      expect(valueSpan?.textContent).toBe('Object')
+      expect(valueSpan?.textContent).toBe(objectInspectorStrings.objectLabel)
     })
 
     it('should render objects with constructor name', () => {
@@ -266,14 +267,14 @@ describe('ObjectInspector', () => {
       const result = inspector.render(obj)
       const preview = result.querySelector('span[style*="italic"]')
       
-      expect(preview?.textContent).toContain('...')
+      expect(preview?.textContent).toContain(objectInspectorStrings.previewEllipsis)
     })
 
     it('should show empty object indicator for empty objects', () => {
       const result = inspector.render({})
       const preview = result.querySelector('span[style*="italic"]')
       
-      expect(preview?.textContent).toBe(' {}')
+      expect(preview?.textContent).toBe(objectInspectorStrings.emptyObject)
     })
   })
 
@@ -286,13 +287,13 @@ describe('ObjectInspector', () => {
       const result = inspector.render({ a: 1 })
       const arrow = result.querySelector('span')
       
-      expect(arrow?.textContent).toBe('▶')
+      expect(arrow?.textContent).toBe(objectInspectorStrings.expandArrow)
     })
 
     it('should not have expand arrow for primitive values', () => {
       const result = inspector.render('hello')
       const arrows = result.querySelectorAll('span')
-      const hasExpandArrow = Array.from(arrows).some(span => span.textContent === '▶')
+      const hasExpandArrow = Array.from(arrows).some(span => span.textContent === objectInspectorStrings.expandArrow)
       
       expect(hasExpandArrow).toBe(false)
     })
@@ -445,7 +446,7 @@ describe('ObjectInspector', () => {
       // Look for circular reference indicator
       const allSpans = result.querySelectorAll('span')
       const hasCircularText = Array.from(allSpans).some(span => 
-        span.textContent?.includes('[Circular]')
+        span.textContent?.includes(objectInspectorStrings.circularReference)
       )
       
       expect(hasCircularText).toBe(true)
@@ -461,7 +462,7 @@ describe('ObjectInspector', () => {
       
       const allSpans = result.querySelectorAll('span')
       const hasCircularText = Array.from(allSpans).some(span => 
-        span.textContent?.includes('[Circular]')
+        span.textContent?.includes(objectInspectorStrings.circularReference)
       )
       
       expect(hasCircularText).toBe(false)
@@ -523,7 +524,7 @@ describe('ObjectInspector', () => {
       // Should show max depth message
       const allSpans = result.querySelectorAll('span')
       const hasMaxDepthMessage = Array.from(allSpans).some(span => 
-        span.textContent?.includes('[Maximum depth reached]')
+        span.textContent?.includes(objectInspectorStrings.maxDepthReached)
       )
       
       expect(hasMaxDepthMessage).toBe(true)
@@ -539,7 +540,7 @@ describe('ObjectInspector', () => {
       // Should show max depth message at level 3
       const allSpans = result.querySelectorAll('span')
       const hasMaxDepthMessage = Array.from(allSpans).some(span => 
-        span.textContent?.includes('[Maximum depth reached]')
+        span.textContent?.includes(objectInspectorStrings.maxDepthReached)
       )
       expect(hasMaxDepthMessage).toBe(true)
     })
