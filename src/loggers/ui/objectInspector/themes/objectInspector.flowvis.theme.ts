@@ -27,7 +27,7 @@ export const objectInspectorTheme = {
     circularRefColor: "#cc0000",
     sharedRefColor: "#007acc",
     maxDepthColor: "#ccc",
-    previewColor: "#666",
+    previewColor: "#999",
     prototypeOpacity: "0.6",
     errorColor: "#cc0000"
   },

@@ -178,7 +178,7 @@ export class ObjectInspector {
             const row = document.createElement('div');
             row.style.display = "flex";
             row.style.alignItems = "center";
-            row.style.padding = `${objectInspectorTheme.spacing.xs} ${objectInspectorTheme.spacing.none}`;
+            row.style.padding = objectInspectorTheme.spacing.xs;
             row.style.position = "relative";
             row.onmouseenter = (): void => { row.style.backgroundColor = objectInspectorTheme.colors.rowHoverBackground; };
             row.onmouseleave = (): void => { row.style.backgroundColor = "transparent"; };
@@ -214,7 +214,7 @@ export class ObjectInspector {
         const row = document.createElement('div');
         row.style.display = "flex";
         row.style.alignItems = "center";
-        row.style.padding = `${objectInspectorTheme.spacing.xs} ${objectInspectorTheme.spacing.none}`;
+        row.style.padding = objectInspectorTheme.spacing.xs;
         row.style.position = "relative";
         row.onmouseenter = (): void => { row.style.backgroundColor = objectInspectorTheme.colors.rowHoverBackground; };
         row.onmouseleave = (): void => { row.style.backgroundColor = "transparent"; };
@@ -231,16 +231,24 @@ export class ObjectInspector {
         const autoExpand = depth < this.options.expandDepth;
 
         if (isExpandable) {
-            toggle.style.top = autoExpand ? objectInspectorTheme.spacing.none : `-${objectInspectorTheme.spacing.xs}`;
             // eslint-disable-next-line no-undef
             const arrow = document.createElement('span');
             arrow.textContent = objectInspectorStrings.expandArrow;
             arrow.style.position = "absolute";
+            arrow.style.width = objectInspectorTheme.layout.arrowSize;
+            arrow.style.height = objectInspectorTheme.layout.arrowSize;
+            arrow.style.display = "flex";
+            arrow.style.justifyContent = "center";
+            arrow.style.alignItems = "center";
             arrow.style.left = "0";
+            arrow.style.top = autoExpand ? "1px" : "0";
+            arrow.style.lineHeight = "1";
             arrow.style.fontSize = objectInspectorTheme.fontSizes.small;
             arrow.style.color = objectInspectorTheme.colors.arrowColor;
+            arrow.style.transformOrigin = "center";
             arrow.style.transition = objectInspectorTheme.transitions.fast;
             arrow.style.transform = autoExpand ? "rotate(90deg)" : "rotate(0deg)";
+            arrow.style.userSelect = "none";
             toggle.appendChild(arrow);
             toggle.addEventListener('click', () => this.toggleExpand(toggle, node));
         } else {
@@ -451,7 +459,7 @@ export class ObjectInspector {
                         const errorRow = document.createElement('div');
                         errorRow.style.display = "flex";
                         errorRow.style.alignItems = "center";
-                        errorRow.style.padding = `${objectInspectorTheme.spacing.xs} ${objectInspectorTheme.spacing.none}`;
+                        errorRow.style.padding = objectInspectorTheme.spacing.xs;
                         errorRow.style.position = "relative";
                         errorRow.onmouseenter = (): void => { errorRow.style.backgroundColor = objectInspectorTheme.colors.rowHoverBackground; };
                         errorRow.onmouseleave = (): void => { errorRow.style.backgroundColor = "transparent"; };
@@ -517,6 +525,7 @@ export class ObjectInspector {
             const isExpanded = children.style.display === 'block';
             children.style.display = isExpanded ? 'none' : 'block';
             arrow.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(90deg)';
+            arrow.style.top = isExpanded ? '0' : '2px'; // Adjust arrow position based on expansion state
         }
     }
 
