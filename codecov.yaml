@@ -4,3 +4,4 @@ ignore:
   - "src/constants.ts"
   - "src/index.ts"
   - "src/plugin/index.ts"
+  - "src/loggers/ui/icons.ts"
