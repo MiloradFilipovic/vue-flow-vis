@@ -1,6 +1,6 @@
 /**
- * Object Inspector Library
- * A zero-dependency library for rendering JavaScript objects in a collapsible tree structure
+ * A very naive clone of devtools Object Inspector
+ * Renders JavaScript objects in a collapsible tree structure
  * Copyright (c) 2025 Milorad Filipovic
  */
 
