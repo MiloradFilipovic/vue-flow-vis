@@ -7,11 +7,6 @@
 import { objectInspectorTheme } from './themes/objectInspector.flowvis.theme';
 import { objectInspectorStrings } from './ObjectInspector.strings';
 
-type Enumerate<N extends number, Acc extends number[] = []> = Acc['length'] extends N
-  ? Acc[number]
-  : Enumerate<N, [...Acc, Acc['length']]>
-
-type IntRange<F extends number, T extends number> = Exclude<Enumerate<T>, Enumerate<F>>
 
 export interface ObjectInspectorOptions {
     /** Number of levels to auto-expand (default: 1) */
@@ -22,8 +17,8 @@ export interface ObjectInspectorOptions {
     sortKeys?: boolean;
     /** Show indicators for shared references (default: true) */
     showSharedRefs?: boolean;
-    /** Maximum recursion depth to prevent stack overflow (1-30, default: 10) */
-    maxDepth?: IntRange<1, 31>;
+    /** Maximum recursion depth to prevent stack overflow (default: Infinity) */
+    maxDepth?: number;
 }
 
 type ValueType = 'string' | 'number' | 'boolean' | 'null' | 'undefined' | 
@@ -75,7 +70,8 @@ export class ObjectInspector {
             showPrototype: options.showPrototype ?? false,
             sortKeys: options.sortKeys ?? false,
             showSharedRefs: options.showSharedRefs ?? true,
-            maxDepth: options.maxDepth ?? 10
+            // Make sure maxDepth is integer and at least 1
+            maxDepth: options.maxDepth !== undefined ? Math.max(1, Math.floor(options.maxDepth)) : Infinity
         };
     }
 
@@ -121,8 +117,8 @@ export class ObjectInspector {
     private collectObjectRefs(value: InspectableValue, refs: Map<object, { id: number; count: number }>, visited: Set<object> = new Set(), depth: number = 0): void {
         if (value === null || (typeof value !== 'object' && typeof value !== 'function')) return;
         
-        // Limit depth to prevent exponential complexity - only collect refs up to maxDepth + 1
-        if (depth > this.options.maxDepth + 1) return;
+        // Limit depth to prevent exponential complexity when maxDepth is finite
+        if (this.options.maxDepth !== Infinity && depth > this.options.maxDepth + 1) return;
         
         // Prevent infinite loops by checking if we've already visited this object
         if (visited.has(value)) {
@@ -145,32 +141,23 @@ export class ObjectInspector {
         }
         
         if (Array.isArray(value)) {
-            // Limit array traversal for performance
-            const maxItems = depth > this.options.maxDepth - 2 ? Math.min(value.length, 10) : value.length;
-            for (let i = 0; i < maxItems; i++) {
-                this.collectObjectRefs(value[i] as InspectableValue, refs, visited, depth + 1);
-            }
+            value.forEach(item => this.collectObjectRefs(item as InspectableValue, refs, visited, depth + 1));
         } else if (isObjectWithKeys(value) || typeof value === 'function') {
             // Handle both objects and functions (functions can have properties)
             try {
-                const keys = Object.keys(value);
-                // Limit key traversal for performance at deeper levels
-                const maxKeys = depth > this.options.maxDepth - 2 ? Math.min(keys.length, 20) : keys.length;
-                
-                for (let i = 0; i < maxKeys; i++) {
-                    const key = keys[i];
+                Object.keys(value).forEach(key => {
                     try {
                         const propValue = (value as Record<string, unknown>)[key];
                         this.collectObjectRefs(propValue as InspectableValue, refs, visited, depth + 1);
                     } catch {
                         // Skip properties that throw errors when accessed
                     }
-                }
+                });
             } catch {
                 // Skip objects where Object.keys() throws
             }
             
-            if (this.options.showPrototype && depth < this.options.maxDepth) {
+            if (this.options.showPrototype && (this.options.maxDepth === Infinity || depth < this.options.maxDepth)) {
                 try {
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                     const proto = Object.getPrototypeOf(value);
@@ -190,9 +177,8 @@ export class ObjectInspector {
         node.style.margin = objectInspectorTheme.spacing.none;
         node.style.padding = objectInspectorTheme.spacing.none;
 
-        // Prevent stack overflow by limiting maximum depth
-        // FIXME: Becomes slow for depths > 10
-        if (depth > this.options.maxDepth) {
+        // Prevent stack overflow by limiting maximum depth when maxDepth is finite
+        if (this.options.maxDepth !== Infinity && depth > this.options.maxDepth) {
             // eslint-disable-next-line no-undef
             const row = document.createElement('div');
             row.style.display = "flex";
@@ -459,122 +445,6 @@ export class ObjectInspector {
         return preview;
     }
 
-    private renderChildren(value: InspectableValue, depth: number, context: RenderContext): HTMLElement {
-        // eslint-disable-next-line no-undef
-        const children = document.createElement('div');
-        children.style.marginLeft = objectInspectorTheme.layout.indentSize;
-        children.style.display = "none";
-
-        if (isArray(value)) {
-            // Limit array rendering at deep levels to prevent performance issues
-            const maxItems = depth > this.options.maxDepth - 2 ? Math.min(value.length, 50) : value.length;
-            
-            for (let i = 0; i < maxItems; i++) {
-                const child = this.renderNode(value[i] as InspectableValue, i, depth, context);
-                children.appendChild(child);
-            }
-            
-            // Show truncation indicator if we've limited the items
-            if (maxItems < value.length) {
-                // eslint-disable-next-line no-undef
-                const truncated = document.createElement('div');
-                truncated.style.padding = objectInspectorTheme.spacing.xs;
-                truncated.style.color = objectInspectorTheme.colors.maxDepthColor;
-                truncated.style.fontStyle = 'italic';
-                truncated.textContent = `... ${value.length - maxItems} more items`;
-                children.appendChild(truncated);
-            }
-        } else if (isObjectWithKeys(value) || typeof value === 'function') {
-            // Handle both objects and functions (functions can have properties)
-            try {
-                let keys = Object.keys(value);
-                if (this.options.sortKeys) {
-                    keys.sort();
-                }
-
-                // Limit key rendering at deep levels to prevent performance issues
-                const maxKeys = depth > this.options.maxDepth - 2 ? Math.min(keys.length, 100) : keys.length;
-
-                for (let i = 0; i < maxKeys; i++) {
-                    const key = keys[i];
-                    try {
-                        const propValue = (value as Record<string, unknown>)[key];
-                        const child = this.renderNode(propValue as InspectableValue, key, depth, context);
-                        children.appendChild(child);
-                    } catch {
-                        // Render error placeholder for properties that throw
-                        // eslint-disable-next-line no-undef
-                        const errorChild = document.createElement('div');
-                        errorChild.style.margin = objectInspectorTheme.spacing.none;
-                        errorChild.style.padding = objectInspectorTheme.spacing.none;
-                        
-                        // eslint-disable-next-line no-undef
-                        const errorRow = document.createElement('div');
-                        errorRow.style.display = "flex";
-                        errorRow.style.alignItems = "center";
-                        errorRow.style.padding = objectInspectorTheme.spacing.xs;
-                        errorRow.style.position = "relative";
-                        errorRow.onmouseenter = (): void => { errorRow.style.backgroundColor = objectInspectorTheme.colors.rowHoverBackground; };
-                        errorRow.onmouseleave = (): void => { errorRow.style.backgroundColor = "transparent"; };
-                        
-                        // eslint-disable-next-line no-undef
-                        const keySpan = document.createElement('span');
-                        keySpan.style.color = objectInspectorTheme.colors.keyColor;
-                        keySpan.style.marginRight = objectInspectorTheme.spacing.sm;
-                        keySpan.textContent = this.formatKey(key);
-                        errorRow.appendChild(keySpan);
-                        
-                        // eslint-disable-next-line no-undef
-                        const separator = document.createElement('span');
-                        separator.style.color = objectInspectorTheme.colors.separatorColor;
-                        separator.style.marginRight = objectInspectorTheme.spacing.sm;
-                        separator.textContent = objectInspectorStrings.separator;
-                        errorRow.appendChild(separator);
-                        
-                        // eslint-disable-next-line no-undef
-                        const errorSpan = document.createElement('span');
-                        errorSpan.style.color = objectInspectorTheme.colors.errorColor;
-                        errorSpan.style.fontStyle = "italic";
-                        errorSpan.textContent = objectInspectorStrings.errorAccessingProperty;
-                        errorRow.appendChild(errorSpan);
-                        
-                        errorChild.appendChild(errorRow);
-                        children.appendChild(errorChild);
-                    }
-                }
-                
-                // Show truncation indicator if we've limited the keys
-                if (maxKeys < keys.length) {
-                    // eslint-disable-next-line no-undef
-                    const truncated = document.createElement('div');
-                    truncated.style.padding = objectInspectorTheme.spacing.xs;
-                    truncated.style.color = objectInspectorTheme.colors.maxDepthColor;
-                    truncated.style.fontStyle = 'italic';
-                    truncated.textContent = `... ${keys.length - maxKeys} more properties`;
-                    children.appendChild(truncated);
-                }
-            } catch {
-                // Don't render anything if Object.keys() throws
-            }
-
-            if (this.options.showPrototype && depth < this.options.maxDepth - 1) {
-                try {
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                    const proto = Object.getPrototypeOf(value);
-                    if (proto && proto !== Object.prototype && proto !== Function.prototype) {
-                        const protoNode = this.renderNode(proto as InspectableValue, '__proto__', depth, context);
-                        protoNode.style.opacity = objectInspectorTheme.opacity.prototype;
-                        protoNode.style.fontStyle = "italic";
-                        children.appendChild(protoNode);
-                    }
-                } catch {
-                    // Skip prototype if getPrototypeOf throws
-                }
-            }
-        }
-
-        return children;
-    }
 
     private renderChildrenLazy(container: HTMLElement, value: InspectableValue, depth: number, context: RenderContext): void {
         // Clear lazy flag since we're rendering now
@@ -607,7 +477,7 @@ export class ObjectInspector {
                 // Don't render anything if Object.keys() throws
             }
 
-            if (this.options.showPrototype && depth < this.options.maxDepth - 1) {
+            if (this.options.showPrototype && (this.options.maxDepth === Infinity || depth < this.options.maxDepth - 1)) {
                 try {
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                     const proto = Object.getPrototypeOf(value);
