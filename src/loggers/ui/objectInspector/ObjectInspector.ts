@@ -22,8 +22,8 @@ export interface ObjectInspectorOptions {
     sortKeys?: boolean;
     /** Show indicators for shared references (default: true) */
     showSharedRefs?: boolean;
-    /** Maximum recursion depth to prevent stack overflow (1-10, default: 10) */
-    maxDepth?: IntRange<1, 11>;
+    /** Maximum recursion depth to prevent stack overflow (1-30, default: 10) */
+    maxDepth?: IntRange<1, 31>;
 }
 
 type ValueType = 'string' | 'number' | 'boolean' | 'null' | 'undefined' | 
@@ -59,8 +59,15 @@ interface RenderContext {
     refIdCounter: number;
 }
 
+interface LazyRenderData {
+    value: InspectableValue;
+    context: RenderContext;
+    depth: number;
+}
+
 export class ObjectInspector {
     private options: Required<ObjectInspectorOptions>;
+    private lazyDataMap = new WeakMap<HTMLElement, LazyRenderData>();
 
     constructor(options: ObjectInspectorOptions = {}) {
         this.options = {
@@ -111,8 +118,11 @@ export class ObjectInspector {
         return container;
     }
 
-    private collectObjectRefs(value: InspectableValue, refs: Map<object, { id: number; count: number }>, visited: Set<object> = new Set()): void {
+    private collectObjectRefs(value: InspectableValue, refs: Map<object, { id: number; count: number }>, visited: Set<object> = new Set(), depth: number = 0): void {
         if (value === null || (typeof value !== 'object' && typeof value !== 'function')) return;
+        
+        // Limit depth to prevent exponential complexity - only collect refs up to maxDepth + 1
+        if (depth > this.options.maxDepth + 1) return;
         
         // Prevent infinite loops by checking if we've already visited this object
         if (visited.has(value)) {
@@ -135,28 +145,37 @@ export class ObjectInspector {
         }
         
         if (Array.isArray(value)) {
-            value.forEach(item => this.collectObjectRefs(item as InspectableValue, refs, visited));
+            // Limit array traversal for performance
+            const maxItems = depth > this.options.maxDepth - 2 ? Math.min(value.length, 10) : value.length;
+            for (let i = 0; i < maxItems; i++) {
+                this.collectObjectRefs(value[i] as InspectableValue, refs, visited, depth + 1);
+            }
         } else if (isObjectWithKeys(value) || typeof value === 'function') {
             // Handle both objects and functions (functions can have properties)
             try {
-                Object.keys(value).forEach(key => {
+                const keys = Object.keys(value);
+                // Limit key traversal for performance at deeper levels
+                const maxKeys = depth > this.options.maxDepth - 2 ? Math.min(keys.length, 20) : keys.length;
+                
+                for (let i = 0; i < maxKeys; i++) {
+                    const key = keys[i];
                     try {
                         const propValue = (value as Record<string, unknown>)[key];
-                        this.collectObjectRefs(propValue as InspectableValue, refs, visited);
+                        this.collectObjectRefs(propValue as InspectableValue, refs, visited, depth + 1);
                     } catch {
                         // Skip properties that throw errors when accessed
                     }
-                });
+                }
             } catch {
                 // Skip objects where Object.keys() throws
             }
             
-            if (this.options.showPrototype) {
+            if (this.options.showPrototype && depth < this.options.maxDepth) {
                 try {
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                     const proto = Object.getPrototypeOf(value);
                     if (proto && proto !== Object.prototype && proto !== Function.prototype) {
-                        this.collectObjectRefs(proto as InspectableValue, refs, visited);
+                        this.collectObjectRefs(proto as InspectableValue, refs, visited, depth + 1);
                     }
                 } catch {
                     // Skip prototype if getPrototypeOf throws
@@ -315,17 +334,33 @@ export class ObjectInspector {
                     row.appendChild(shared);
                 }
 
-                // Render children with updated path
-                const newContext: RenderContext = {
-                    ...context,
-                    path: (value !== null && typeof value === 'object') || typeof value === 'function' ? new Set(context.path).add(value) : context.path
+                // Create placeholder for lazy rendering - don't render children until expanded
+                // eslint-disable-next-line no-undef
+                const childrenPlaceholder = document.createElement('div');
+                childrenPlaceholder.style.marginLeft = objectInspectorTheme.layout.indentSize;
+                childrenPlaceholder.style.display = autoExpand ? 'block' : 'none';
+                childrenPlaceholder.dataset.lazy = 'true';
+                childrenPlaceholder.dataset.depth = String(depth + 1);
+                
+                // Store the lazy render data properly typed
+                const lazyData: LazyRenderData = {
+                    value,
+                    context: {
+                        ...context,
+                        path: (value !== null && typeof value === 'object') || typeof value === 'function' ? new Set(context.path).add(value) : context.path
+                    },
+                    depth: depth + 1
                 };
                 
-                const children = this.renderChildren(value, depth + 1, newContext);
+                // Store the lazy data using a WeakMap for proper cleanup
+                this.lazyDataMap.set(childrenPlaceholder, lazyData);
+                
+                // If auto-expanded, render immediately but with limits
                 if (autoExpand) {
-                    children.style.display = 'block';
+                    this.renderChildrenLazy(childrenPlaceholder, lazyData.value, lazyData.depth, lazyData.context);
                 }
-                node.appendChild(children);
+                
+                node.appendChild(childrenPlaceholder);
             }
         }
 
@@ -431,10 +466,24 @@ export class ObjectInspector {
         children.style.display = "none";
 
         if (isArray(value)) {
-            value.forEach((item, index) => {
-                const child = this.renderNode(item as InspectableValue, index, depth, context);
+            // Limit array rendering at deep levels to prevent performance issues
+            const maxItems = depth > this.options.maxDepth - 2 ? Math.min(value.length, 50) : value.length;
+            
+            for (let i = 0; i < maxItems; i++) {
+                const child = this.renderNode(value[i] as InspectableValue, i, depth, context);
                 children.appendChild(child);
-            });
+            }
+            
+            // Show truncation indicator if we've limited the items
+            if (maxItems < value.length) {
+                // eslint-disable-next-line no-undef
+                const truncated = document.createElement('div');
+                truncated.style.padding = objectInspectorTheme.spacing.xs;
+                truncated.style.color = objectInspectorTheme.colors.maxDepthColor;
+                truncated.style.fontStyle = 'italic';
+                truncated.textContent = `... ${value.length - maxItems} more items`;
+                children.appendChild(truncated);
+            }
         } else if (isObjectWithKeys(value) || typeof value === 'function') {
             // Handle both objects and functions (functions can have properties)
             try {
@@ -443,7 +492,11 @@ export class ObjectInspector {
                     keys.sort();
                 }
 
-                keys.forEach(key => {
+                // Limit key rendering at deep levels to prevent performance issues
+                const maxKeys = depth > this.options.maxDepth - 2 ? Math.min(keys.length, 100) : keys.length;
+
+                for (let i = 0; i < maxKeys; i++) {
+                    const key = keys[i];
                     try {
                         const propValue = (value as Record<string, unknown>)[key];
                         const child = this.renderNode(propValue as InspectableValue, key, depth, context);
@@ -488,12 +541,23 @@ export class ObjectInspector {
                         errorChild.appendChild(errorRow);
                         children.appendChild(errorChild);
                     }
-                });
+                }
+                
+                // Show truncation indicator if we've limited the keys
+                if (maxKeys < keys.length) {
+                    // eslint-disable-next-line no-undef
+                    const truncated = document.createElement('div');
+                    truncated.style.padding = objectInspectorTheme.spacing.xs;
+                    truncated.style.color = objectInspectorTheme.colors.maxDepthColor;
+                    truncated.style.fontStyle = 'italic';
+                    truncated.textContent = `... ${keys.length - maxKeys} more properties`;
+                    children.appendChild(truncated);
+                }
             } catch {
                 // Don't render anything if Object.keys() throws
             }
 
-            if (this.options.showPrototype) {
+            if (this.options.showPrototype && depth < this.options.maxDepth - 1) {
                 try {
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                     const proto = Object.getPrototypeOf(value);
@@ -512,6 +576,144 @@ export class ObjectInspector {
         return children;
     }
 
+    private renderChildrenLazy(container: HTMLElement, value: InspectableValue, depth: number, context: RenderContext): void {
+        // Clear lazy flag since we're rendering now
+        container.dataset.lazy = 'false';
+        
+        // More aggressive limits based on depth
+        let maxItems: number;
+        let maxKeys: number;
+        
+        if (depth > 10) {
+            maxItems = 5;
+            maxKeys = 10;
+        } else if (depth > 8) {
+            maxItems = 15;
+            maxKeys = 25;
+        } else if (depth > 5) {
+            maxItems = 30;
+            maxKeys = 50;
+        } else {
+            maxItems = 100;
+            maxKeys = 200;
+        }
+
+        if (isArray(value)) {
+            const itemsToRender = Math.min(value.length, maxItems);
+            
+            for (let i = 0; i < itemsToRender; i++) {
+                const child = this.renderNode(value[i] as InspectableValue, i, depth, context);
+                container.appendChild(child);
+            }
+            
+            // Show truncation indicator if we've limited the items
+            if (itemsToRender < value.length) {
+                // eslint-disable-next-line no-undef
+                const truncated = document.createElement('div');
+                truncated.style.padding = objectInspectorTheme.spacing.xs;
+                truncated.style.color = objectInspectorTheme.colors.maxDepthColor;
+                truncated.style.fontStyle = 'italic';
+                truncated.textContent = `... ${value.length - itemsToRender} more items (click to load more)`;
+                truncated.style.cursor = 'pointer';
+                truncated.onclick = (): void => this.loadMoreItems(container, value, itemsToRender, depth, context, maxItems);
+                container.appendChild(truncated);
+            }
+        } else if (isObjectWithKeys(value) || typeof value === 'function') {
+            // Handle both objects and functions (functions can have properties)
+            try {
+                let keys = Object.keys(value);
+                if (this.options.sortKeys) {
+                    keys.sort();
+                }
+
+                const keysToRender = Math.min(keys.length, maxKeys);
+
+                for (let i = 0; i < keysToRender; i++) {
+                    const key = keys[i];
+                    try {
+                        const propValue = (value as Record<string, unknown>)[key];
+                        const child = this.renderNode(propValue as InspectableValue, key, depth, context);
+                        container.appendChild(child);
+                    } catch {
+                        // Skip properties that throw errors when accessed
+                    }
+                }
+                
+                // Show truncation indicator if we've limited the keys
+                if (keysToRender < keys.length) {
+                    // eslint-disable-next-line no-undef
+                    const truncated = document.createElement('div');
+                    truncated.style.padding = objectInspectorTheme.spacing.xs;
+                    truncated.style.color = objectInspectorTheme.colors.maxDepthColor;
+                    truncated.style.fontStyle = 'italic';
+                    truncated.textContent = `... ${keys.length - keysToRender} more properties (click to load more)`;
+                    truncated.style.cursor = 'pointer';
+                    truncated.onclick = (): void => this.loadMoreKeys(container, value as Record<string, unknown>, keys, keysToRender, depth, context, maxKeys);
+                    container.appendChild(truncated);
+                }
+            } catch {
+                // Don't render anything if Object.keys() throws
+            }
+
+            if (this.options.showPrototype && depth < this.options.maxDepth - 1) {
+                try {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    const proto = Object.getPrototypeOf(value);
+                    if (proto && proto !== Object.prototype && proto !== Function.prototype) {
+                        const protoNode = this.renderNode(proto as InspectableValue, '__proto__', depth, context);
+                        protoNode.style.opacity = objectInspectorTheme.opacity.prototype;
+                        protoNode.style.fontStyle = "italic";
+                        container.appendChild(protoNode);
+                    }
+                } catch {
+                    // Skip prototype if getPrototypeOf throws
+                }
+            }
+        }
+    }
+
+    private loadMoreItems(container: HTMLElement, value: unknown[], startIndex: number, depth: number, context: RenderContext, batchSize: number): void {
+        const truncatedElement = container.lastElementChild!;
+        const itemsToAdd = Math.min(batchSize, value.length - startIndex);
+        
+        for (let i = startIndex; i < startIndex + itemsToAdd; i++) {
+            const child = this.renderNode(value[i] as InspectableValue, i, depth, context);
+            container.insertBefore(child, truncatedElement);
+        }
+        
+        const newStartIndex = startIndex + itemsToAdd;
+        if (newStartIndex < value.length) {
+            (truncatedElement as HTMLElement).textContent = `... ${value.length - newStartIndex} more items (click to load more)`;
+            (truncatedElement as HTMLElement).onclick = (): void => this.loadMoreItems(container, value, newStartIndex, depth, context, batchSize);
+        } else {
+            container.removeChild(truncatedElement);
+        }
+    }
+
+    private loadMoreKeys(container: HTMLElement, value: Record<string, unknown>, keys: string[], startIndex: number, depth: number, context: RenderContext, batchSize: number): void {
+        const truncatedElement = container.lastElementChild!;
+        const keysToAdd = Math.min(batchSize, keys.length - startIndex);
+        
+        for (let i = startIndex; i < startIndex + keysToAdd; i++) {
+            const key = keys[i];
+            try {
+                const propValue = value[key];
+                const child = this.renderNode(propValue as InspectableValue, key, depth, context);
+                container.insertBefore(child, truncatedElement);
+            } catch {
+                // Skip properties that throw errors when accessed
+            }
+        }
+        
+        const newStartIndex = startIndex + keysToAdd;
+        if (newStartIndex < keys.length) {
+            (truncatedElement as HTMLElement).textContent = `... ${keys.length - newStartIndex} more properties (click to load more)`;
+            (truncatedElement as HTMLElement).onclick = (): void => this.loadMoreKeys(container, value, keys, newStartIndex, depth, context, batchSize);
+        } else {
+            container.removeChild(truncatedElement);
+        }
+    }
+
     private toggleExpand(toggle: HTMLElement, node: HTMLElement): void {
         const arrow = toggle.querySelector('span');
         // Find the children container by looking for a div with marginLeft style (indented children)
@@ -523,9 +725,25 @@ export class ObjectInspector {
         
         if (arrow && children) {
             const isExpanded = children.style.display === 'block';
-            children.style.display = isExpanded ? 'none' : 'block';
-            arrow.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(90deg)';
-            arrow.style.top = isExpanded ? '0' : '2px'; // Adjust arrow position based on expansion state
+            
+            if (!isExpanded) {
+                // Expanding - check if we need to lazy render
+                if (children.dataset.lazy === 'true' && children.children.length === 0) {
+                    const lazyData = this.lazyDataMap.get(children);
+                    
+                    if (lazyData) {
+                        this.renderChildrenLazy(children, lazyData.value, lazyData.depth, lazyData.context);
+                    }
+                }
+                children.style.display = 'block';
+                arrow.style.transform = 'rotate(90deg)';
+                arrow.style.top = '2px';
+            } else {
+                // Collapsing
+                children.style.display = 'none';
+                arrow.style.transform = 'rotate(0deg)';
+                arrow.style.top = '0';
+            }
         }
     }
 

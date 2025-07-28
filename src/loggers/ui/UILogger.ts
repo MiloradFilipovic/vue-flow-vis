@@ -47,7 +47,7 @@ export class UILogger implements Logger {
         // Initialize ObjectInspector
         this.objectInspector = new ObjectInspector({
             expandDepth: 1,
-            maxDepth: 10,
+            maxDepth: 15,
         });
         
         this.showPlaceholderText();
