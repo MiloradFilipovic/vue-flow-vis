@@ -95,6 +95,7 @@ export class ObjectInspector {
         container.style.borderRadius = objectInspectorTheme.borderRadius.sm;
         container.style.overflow = "auto";
         container.style.boxSizing = "border-box";
+        container.style.height = "100%";
         
         // Initialize render context
         const context: RenderContext = {
@@ -185,6 +186,8 @@ export class ObjectInspector {
             row.style.alignItems = "center";
             row.style.padding = objectInspectorTheme.spacing.xs;
             row.style.position = "relative";
+            row.style.whiteSpace = "nowrap";
+            row.style.minWidth = "0";
             row.onmouseenter = (): void => { row.style.backgroundColor = objectInspectorTheme.colors.rowHoverBackground; };
             row.onmouseleave = (): void => { row.style.backgroundColor = "transparent"; };
             
@@ -221,6 +224,8 @@ export class ObjectInspector {
         row.style.alignItems = "center";
         row.style.padding = objectInspectorTheme.spacing.xs;
         row.style.position = "relative";
+        row.style.whiteSpace = "nowrap";
+        row.style.minWidth = "0";
         row.onmouseenter = (): void => { row.style.backgroundColor = objectInspectorTheme.colors.rowHoverBackground; };
         row.onmouseleave = (): void => { row.style.backgroundColor = "transparent"; };
 
@@ -417,6 +422,7 @@ export class ObjectInspector {
     private renderPreview(value: InspectableValue): HTMLElement | null {
         // eslint-disable-next-line no-undef
         const preview = document.createElement('span');
+        preview.id = 'object-inspector-preview';
         preview.style.color = objectInspectorTheme.colors.previewColor;
         preview.style.fontStyle = "italic";
         preview.style.marginLeft = objectInspectorTheme.spacing.sm;
