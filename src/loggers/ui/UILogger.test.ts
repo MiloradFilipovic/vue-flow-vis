@@ -387,8 +387,8 @@ describe('UILogger', () => {
       const detailsArea = mainArea?.querySelector('#vue-flow-vis-event-details-area')
       expect(detailsArea).toBeTruthy()
       
-      // Verify the details area has header and content
-      expect(detailsArea?.childElementCount).toBe(2)
+      // Verify the details area has resize handle, header and content
+      expect(detailsArea?.childElementCount).toBe(3)
       
       // Verify the header is present
       const detailsHeader = detailsArea?.querySelector('#vue-flow-vis-event-details-header')
@@ -408,6 +408,11 @@ describe('UILogger', () => {
       // Verify ObjectInspector is rendered
       const objectInspector = contentArea?.querySelector('#object-inspector')
       expect(objectInspector).toBeTruthy()
+      
+      // Verify the resize handle is present
+      const resizeHandle = detailsArea?.querySelector('#vue-flow-vis-event-details-resize-handle') as HTMLDivElement
+      expect(resizeHandle).toBeTruthy()
+      expect(resizeHandle?.style.cursor).toBe('ew-resize')
     })
 
     it('should update event visual state when selected', () => {

@@ -31,6 +31,11 @@ export class UILogger implements Logger {
     private showTriggeredEvents = true;
     private componentFilter = "";
     private objectInspector: ObjectInspector;
+    
+    // Event details resize state
+    private isEventDetailsResizing = false;
+    private startEventDetailsX = 0;
+    private startEventDetailsWidth = 0;
 
     constructor() {
         const callbacks: UIManagerCallbacks = {
@@ -49,6 +54,9 @@ export class UILogger implements Logger {
             showPrototype: true,
             showNonEnumerable: true,
         });
+        
+        // Setup global mouse event listeners for event details resizing
+        this.setupEventDetailsResizeListeners();
         
         this.showPlaceholderText();
     }
@@ -524,6 +532,35 @@ export class UILogger implements Logger {
         detailsArea.style.minHeight = "0";
         detailsArea.style.borderLeft = `${theme.borderWidths.thin} solid ${theme.colors.border}`;
         detailsArea.style.overflow = "auto";
+        detailsArea.style.position = "relative";
+        
+        // Create resize handle for the left border
+        const resizeHandle = document.createElement("div");
+        resizeHandle.id = "vue-flow-vis-event-details-resize-handle";
+        resizeHandle.style.position = "absolute";
+        resizeHandle.style.top = "0";
+        resizeHandle.style.left = "-2px";
+        resizeHandle.style.bottom = "0";
+        resizeHandle.style.width = "4px";
+        resizeHandle.style.cursor = "ew-resize";
+        resizeHandle.style.backgroundColor = "transparent";
+        resizeHandle.style.borderLeft = "2px solid transparent";
+        resizeHandle.style.transition = "border-color 0.2s ease";
+        resizeHandle.style.zIndex = "3";
+        
+        resizeHandle.addEventListener("mouseenter", () => {
+            resizeHandle.style.borderLeftColor = theme.colors.primary;
+        });
+        
+        resizeHandle.addEventListener("mouseleave", () => {
+            if (!this.isEventDetailsResizing) {
+                resizeHandle.style.borderLeftColor = "transparent";
+            }
+        });
+        
+        resizeHandle.addEventListener("mousedown", this.onEventDetailsMouseDown.bind(this));
+        
+        detailsArea.appendChild(resizeHandle);
 
         // Create header
         const detailsHeader = document.createElement("div");
@@ -578,6 +615,76 @@ export class UILogger implements Logger {
         }
 
         return detailsArea;
+    }
+    
+    private setupEventDetailsResizeListeners(): void {
+        document.addEventListener("mousemove", this.onEventDetailsMouseMove.bind(this));
+        document.addEventListener("mouseup", this.onEventDetailsMouseUp.bind(this));
+    }
+    
+    private onEventDetailsMouseDown(event: MouseEvent): void {
+        this.isEventDetailsResizing = true;
+        this.startEventDetailsX = event.clientX;
+        
+        const detailsArea = document.querySelector('#vue-flow-vis-event-details-area') as HTMLDivElement;
+        if (detailsArea) {
+            this.startEventDetailsWidth = detailsArea.offsetWidth;
+        }
+        
+        const resizeHandle = document.querySelector('#vue-flow-vis-event-details-resize-handle') as HTMLDivElement;
+        if (resizeHandle) {
+            resizeHandle.style.borderLeftColor = theme.colors.primary;
+        }
+        
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    private onEventDetailsMouseMove(event: MouseEvent): void {
+        if (!this.isEventDetailsResizing) return;
+        
+        const deltaX = this.startEventDetailsX - event.clientX;
+        const newWidth = this.startEventDetailsWidth + deltaX;
+        
+        // Get the main area to calculate max width
+        const mainArea = this.uiManager.getMainArea();
+        if (!mainArea) return;
+        
+        const minWidth = 200; // Minimum width for event details
+        const maxWidth = mainArea.offsetWidth * 0.8; // Max 80% of main area
+        
+        const clampedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+        
+        // Calculate the remaining width for events list
+        const totalWidth = mainArea.offsetWidth;
+        const eventListWidth = totalWidth - clampedWidth;
+        const eventListMinWidth = 150;
+        
+        // Ensure event list has minimum width
+        if (eventListWidth < eventListMinWidth) {
+            return;
+        }
+        
+        // Update the flex basis for both areas
+        const detailsArea = document.querySelector('#vue-flow-vis-event-details-area') as HTMLDivElement;
+        const eventsListArea = document.querySelector(`#vue-flow-vis-events-list-area-${this.selectedComponent?.replace(/[^a-zA-Z0-9]/g, '-')}`) as HTMLDivElement;
+        
+        if (detailsArea && eventsListArea) {
+            const detailsPercentage = (clampedWidth / totalWidth) * 100;
+            const eventsPercentage = ((totalWidth - clampedWidth) / totalWidth) * 100;
+            
+            detailsArea.style.flex = `0 0 ${detailsPercentage}%`;
+            eventsListArea.style.flex = `0 0 ${eventsPercentage}%`;
+        }
+    }
+    
+    private onEventDetailsMouseUp(): void {
+        this.isEventDetailsResizing = false;
+        
+        const resizeHandle = document.querySelector('#vue-flow-vis-event-details-resize-handle') as HTMLDivElement;
+        if (resizeHandle) {
+            resizeHandle.style.borderLeftColor = "transparent";
+        }
     }
 
     tracked(data: RenderEventData): void {
