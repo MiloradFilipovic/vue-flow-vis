@@ -19,7 +19,7 @@ Monitor which components re-render, what triggers the updates, and track reactiv
 
 ![image info](./static/README_screen.png)
 
-In this example, user typing `john` caused 28 render events in `Login` component to be triggered.
+In this example, user typing `john` caused 28 render events in `Login` component trigger.
 
 ## Installation
 
@@ -59,9 +59,9 @@ The plugin accepts a configuration object with the following options:
 type FlowVisOptions = {
   enabled?: boolean             // Enable/disable monitoring (default: true)
   logger?: 'console' | 'ui' | 'none'  // Logger type (default: 'ui')
-  logToTable?: boolean          // Use console.table for output (default: false)
   excludeComponents?: string[]  // Components to exclude from monitoring
   includeComponents?: string[]  // Only monitor these components (overrides exclude)
+  logToTable?: boolean          // Use console.table for output (default: false)
   batchLogs?: boolean           // Group console logs by component (default: true)
   batchWindow?: number          // Delay in ms before flushing batched logs (default: 500)
   onRenderTracked?: (data: RenderEventData) => void   // Custom callback for tracked events
@@ -79,7 +79,7 @@ The plugin provides three built-in logger types:
 app.use(FlowVisPlugin, { logger: 'ui' })
 ```
 Shows an in-page resizable panel with component event details.
-Offers best UX but event details rendering is still WIP.
+Offers best UX but takes up screen space.
 
 **Console Logger**
 ```typescript
