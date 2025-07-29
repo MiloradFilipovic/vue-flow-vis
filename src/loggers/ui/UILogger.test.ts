@@ -40,15 +40,8 @@ vi.mock('./icons', () => ({
   createComponentIcon: vi.fn((size: number) => `<svg data-icon="component" width="${size}" height="${size}"></svg>`),
   createTrackIcon: vi.fn((size: number) => `<svg data-icon="track" width="${size}" height="${size}"></svg>`),
   createTriggerIcon: vi.fn((size: number) => `<svg data-icon="trigger" width="${size}" height="${size}"></svg>`),
-  createFlowIcon: vi.fn((size: number) => `<svg data-icon="flow" width="${size}" height="${size}"></svg>`)
-}))
-
-vi.mock('./EventFormatter', () => ({
-  EventFormatter: {
-    formatKey: vi.fn((key) => String(key)),
-    formatTarget: vi.fn((target) => String(target)),
-    formatValue: vi.fn((value) => String(value))
-  }
+  createFlowIcon: vi.fn((size: number) => `<svg data-icon="flow" width="${size}" height="${size}"></svg>`),
+  createClockIcon: vi.fn((size: number) => `<svg data-icon="clock" width="${size}" height="${size}"></svg>`)
 }))
 
 // Helper function to create mock event data
@@ -377,7 +370,7 @@ describe('UILogger', () => {
       uiLogger = new UILogger()
     })
 
-    it('should show event details when event is selected', () => {
+    it('should show event details area when event is selected', () => {
       const eventData = createMockEventData('TestComponent')
       uiLogger.tracked(eventData)
       
@@ -394,8 +387,32 @@ describe('UILogger', () => {
       const detailsArea = mainArea?.querySelector('#vue-flow-vis-event-details-area')
       expect(detailsArea).toBeTruthy()
       
-      const eventTypeField = detailsArea?.querySelector('#vue-flow-vis-detail-field-event-type')
-      expect(eventTypeField).toBeTruthy()
+      // Verify the details area has resize handle, header and content
+      expect(detailsArea?.childElementCount).toBe(3)
+      
+      // Verify the header is present
+      const detailsHeader = detailsArea?.querySelector('#vue-flow-vis-event-details-header')
+      expect(detailsHeader).toBeTruthy()
+      
+      // Verify the header contains the title and link
+      const headerTitle = detailsHeader?.querySelector('#vue-flow-vis-event-details-title')
+      expect(headerTitle).toBeTruthy()
+      
+      const debuggerEventLink = detailsHeader?.querySelector('#vue-flow-vis-debugger-event-link')
+      expect(debuggerEventLink).toBeTruthy()
+      
+      // Verify the content area with ObjectInspector
+      const contentArea = detailsArea?.querySelector('#vue-flow-vis-event-details-content')
+      expect(contentArea).toBeTruthy()
+      
+      // Verify ObjectInspector is rendered
+      const objectInspector = contentArea?.querySelector('#object-inspector')
+      expect(objectInspector).toBeTruthy()
+      
+      // Verify the resize handle is present
+      const resizeHandle = detailsArea?.querySelector('#vue-flow-vis-event-details-resize-handle') as HTMLDivElement
+      expect(resizeHandle).toBeTruthy()
+      expect(resizeHandle?.style.cursor).toBe('ew-resize')
     })
 
     it('should update event visual state when selected', () => {
