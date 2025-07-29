@@ -189,6 +189,77 @@ describe('ObjectInspector', () => {
       expect(valueSpan?.textContent).toContain('asyncTest')
       expect(valueSpan?.textContent).toContain(objectInspectorStrings.functionSymbol)
     })
+
+    it('should show function properties when expanded', () => {
+      inspector = new ObjectInspector({ expandDepth: 1 })
+      
+      function testFunction(a: number, b: string): string { 
+        return `${a} ${b}` 
+      }
+      
+      const result = inspector.render(testFunction)
+      document.body.appendChild(result)
+      
+      // Should already be expanded due to expandDepth: 1
+      // Look for length and name properties
+      const allSpans = result.querySelectorAll('span')
+      const spanTexts = Array.from(allSpans).map(span => span.textContent)
+      
+      // Should show length property (function has 2 parameters)
+      expect(spanTexts).toContain('length')
+      expect(spanTexts).toContain('2')
+      
+      // Should show name property
+      expect(spanTexts).toContain('name')
+      expect(spanTexts).toContain('"testFunction"')
+    })
+
+    it('should show function properties before custom properties', () => {
+      inspector = new ObjectInspector({ expandDepth: 1 })
+      
+      function testFunction(): void { /* empty */ }
+      // Add custom property
+      (testFunction as any).customProp = 'custom value'
+      
+      const result = inspector.render(testFunction)
+      document.body.appendChild(result)
+      
+      // Get all child rows
+      const childRows = result.querySelectorAll('div[style*="margin-left"] div[style*="display: flex"]')
+      
+      // First two rows should be length and name
+      expect(childRows.length).toBeGreaterThanOrEqual(3) // length, name, customProp
+      
+      const firstRowSpans = childRows[0].querySelectorAll('span')
+      const secondRowSpans = childRows[1].querySelectorAll('span')
+      
+      const firstKey = Array.from(firstRowSpans).find(s => s.textContent && s.textContent !== '▶' && !s.style.cursor)?.textContent
+      const secondKey = Array.from(secondRowSpans).find(s => s.textContent && s.textContent !== '▶' && !s.style.cursor)?.textContent
+      
+      // Should show built-in properties first
+      expect(['length', 'name']).toContain(firstKey)
+      expect(['length', 'name']).toContain(secondKey)
+      expect(firstKey).not.toBe(secondKey)
+    })
+
+    it('should not duplicate function properties', () => {
+      inspector = new ObjectInspector({ expandDepth: 1 })
+      
+      function testFunction(): void { /* empty */ }
+      
+      const result = inspector.render(testFunction)
+      document.body.appendChild(result)
+      
+      const allSpans = result.querySelectorAll('span')
+      const spanTexts = Array.from(allSpans).map(span => span.textContent)
+      
+      // Count occurrences of 'length' and 'name' keys
+      const lengthCount = spanTexts.filter(text => text === 'length').length
+      const nameCount = spanTexts.filter(text => text === 'name').length
+      
+      expect(lengthCount).toBe(1)
+      expect(nameCount).toBe(1)
+    })
   })
 
   describe('array rendering', () => {
@@ -586,6 +657,114 @@ describe('ObjectInspector', () => {
       
       expect(hasProtoKey).toBe(false)
     })
+
+    it('should show __proto__ for functions when showPrototype is true', () => {
+      inspector = new ObjectInspector({ showPrototype: true, expandDepth: 1, maxDepth: 10 })
+      
+      function testFunction(): string { return 'test' }
+      
+      const result = inspector.render(testFunction)
+      document.body.appendChild(result)
+      
+      // Should already be expanded due to expandDepth: 1
+      // Look for __proto__ in the rendered children
+      const allSpans = result.querySelectorAll('span')
+      const hasProtoKey = Array.from(allSpans).some(span => 
+        span.textContent === '__proto__'
+      )
+      
+      expect(hasProtoKey).toBe(true)
+    })
+
+    it('should not show __proto__ for functions when showPrototype is false', () => {
+      inspector = new ObjectInspector({ showPrototype: false, expandDepth: 1 })
+      
+      function testFunction(): string { return 'test' }
+      
+      const result = inspector.render(testFunction)
+      document.body.appendChild(result)
+      
+      const allSpans = result.querySelectorAll('span')
+      const hasProtoKey = Array.from(allSpans).some(span => 
+        span.textContent === '__proto__'
+      )
+      
+      expect(hasProtoKey).toBe(false)
+    })
+
+    it('should show Function.prototype properties when function __proto__ is manually expanded', () => {
+      inspector = new ObjectInspector({ showPrototype: true, expandDepth: 1, maxDepth: 10 })
+      
+      function testFunction(): string { return 'test' }
+      
+      const result = inspector.render(testFunction)
+      document.body.appendChild(result)
+      
+      // Should have __proto__ initially visible
+      let allSpans = result.querySelectorAll('span')
+      let spanTexts = Array.from(allSpans).map(span => span.textContent)
+      expect(spanTexts).toContain('__proto__')
+      
+      // Find and click the __proto__ expand arrow
+      const childRows = result.querySelectorAll('div[style*="margin-left"] div[style*="display: flex"]')
+      let protoToggle = null
+      
+      for (const row of childRows) {
+        const spans = row.querySelectorAll('span')
+        for (const span of spans) {
+          if (span.textContent === '__proto__') {
+            // Find the toggle button in this row (first span with cursor pointer)
+            protoToggle = row.querySelector('span[style*="cursor: pointer"]') as HTMLElement
+            break
+          }
+        }
+        if (protoToggle) break
+      }
+      
+      expect(protoToggle).toBeTruthy()
+      
+      // Click to expand __proto__
+      protoToggle?.click()
+      
+      // Now check for prototype properties
+      allSpans = result.querySelectorAll('span')
+      spanTexts = Array.from(allSpans).map(span => span.textContent)
+      
+      // Function.prototype should have 'constructor' property
+      const hasConstructor = spanTexts.includes('constructor')
+      expect(hasConstructor).toBe(true)
+    })
+
+    it('should style __proto__ with reduced opacity and italics', () => {
+      inspector = new ObjectInspector({ showPrototype: true, expandDepth: 1 })
+      
+      function testFunction(): string { return 'test' }
+      
+      const result = inspector.render(testFunction)
+      document.body.appendChild(result)
+      
+      // Find the __proto__ row
+      const childRows = result.querySelectorAll('div[style*="margin-left"] div[style*="display: flex"]')
+      let protoRow = null
+      
+      for (const row of childRows) {
+        const spans = row.querySelectorAll('span')
+        for (const span of spans) {
+          if (span.textContent === '__proto__') {
+            protoRow = row as HTMLElement
+            break
+          }
+        }
+        if (protoRow) break
+      }
+      
+      expect(protoRow).toBeTruthy()
+      // The parent div should have opacity and italic styling applied
+      if (protoRow?.parentElement) {
+        expect(protoRow.parentElement.style.fontStyle).toBe('italic')
+        expect(protoRow.parentElement.style.opacity).toBeTruthy()
+      }
+    })
   })
 
   describe('lazy rendering', () => {
@@ -637,6 +816,127 @@ describe('ObjectInspector', () => {
       const row = result.querySelector('div[style*="display: flex"]') as HTMLElement
       expect(row.onmouseenter).toBeTruthy()
       expect(row.onmouseleave).toBeTruthy()
+    })
+  })
+
+  describe('function property ordering', () => {
+    beforeEach(() => {
+      inspector = new ObjectInspector({ expandDepth: 1 })
+    })
+
+    it('should show function built-in properties before custom properties', () => {
+      function testFunction(): void { /* empty */ }
+      // Add multiple custom properties
+      ;(testFunction as any).zzz = 'should be last'
+      ;(testFunction as any).aaa = 'should be after built-ins'
+      ;(testFunction as any).customMethod = (): string => 'custom'
+      
+      const result = inspector.render(testFunction)
+      document.body.appendChild(result)
+      
+      // Get all child rows in order
+      const childRows = result.querySelectorAll('div[style*="margin-left"] div[style*="display: flex"]')
+      const rowKeys: string[] = []
+      
+      for (const row of childRows) {
+        const spans = row.querySelectorAll('span')
+        for (const span of spans) {
+          const text = span.textContent
+          if (text && text !== '▶' && !span.style.cursor && text !== ':') {
+            // This should be a key
+            if (!rowKeys.includes(text)) {
+              rowKeys.push(text)
+              break
+            }
+          }
+        }
+      }
+      
+      // First two should be built-in properties
+      expect(rowKeys[0]).toBe('length')
+      expect(rowKeys[1]).toBe('name')
+      
+      // Custom properties should come after
+      expect(rowKeys.slice(2)).toContain('zzz')
+      expect(rowKeys.slice(2)).toContain('aaa')
+      expect(rowKeys.slice(2)).toContain('customMethod')
+    })
+
+    it('should maintain custom property order with sortKeys option', () => {
+      inspector = new ObjectInspector({ expandDepth: 1, sortKeys: true })
+      
+      function testFunction(): void { /* empty */ }
+      ;(testFunction as any).zzz = 'z value'
+      ;(testFunction as any).aaa = 'a value'
+      ;(testFunction as any).mmm = 'm value'
+      
+      const result = inspector.render(testFunction)
+      document.body.appendChild(result)
+      
+      const childRows = result.querySelectorAll('div[style*="margin-left"] div[style*="display: flex"]')
+      const rowKeys: string[] = []
+      
+      for (const row of childRows) {
+        const spans = row.querySelectorAll('span')
+        for (const span of spans) {
+          const text = span.textContent
+          if (text && text !== '▶' && !span.style.cursor && text !== ':') {
+            if (!rowKeys.includes(text)) {
+              rowKeys.push(text)
+              break
+            }
+          }
+        }
+      }
+      
+      // Built-in properties first
+      expect(rowKeys[0]).toBe('length')
+      expect(rowKeys[1]).toBe('name')
+      
+      // Custom properties should be sorted
+      const customKeys = rowKeys.slice(2)
+      expect(customKeys).toContain('aaa')
+      expect(customKeys).toContain('mmm') 
+      expect(customKeys).toContain('zzz')
+      
+      // Check they're in alphabetical order among custom properties
+      const sortedCustomKeys = customKeys.filter(key => ['aaa', 'mmm', 'zzz'].includes(key))
+      expect(sortedCustomKeys).toEqual(['aaa', 'mmm', 'zzz'])
+    })
+
+    it('should show __proto__ after all other properties for functions', () => {
+      inspector = new ObjectInspector({ expandDepth: 1, showPrototype: true })
+      
+      function testFunction(): void { /* empty */ }
+      ;(testFunction as any).customProp = 'custom'
+      
+      const result = inspector.render(testFunction)
+      document.body.appendChild(result)
+      
+      const childRows = result.querySelectorAll('div[style*="margin-left"] div[style*="display: flex"]')
+      const rowKeys: string[] = []
+      
+      for (const row of childRows) {
+        const spans = row.querySelectorAll('span')
+        for (const span of spans) {
+          const text = span.textContent
+          if (text && text !== '▶' && !span.style.cursor && text !== ':') {
+            if (!rowKeys.includes(text)) {
+              rowKeys.push(text)
+              break
+            }
+          }
+        }
+      }
+      
+      // __proto__ should be last
+      expect(rowKeys[rowKeys.length - 1]).toBe('__proto__')
+      
+      // Should have the expected order: length, name, custom properties, then __proto__
+      expect(rowKeys[0]).toBe('length')
+      expect(rowKeys[1]).toBe('name')
+      expect(rowKeys).toContain('customProp')
+      expect(rowKeys.indexOf('customProp')).toBeLessThan(rowKeys.indexOf('__proto__'))
     })
   })
 

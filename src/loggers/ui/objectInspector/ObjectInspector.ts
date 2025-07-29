@@ -58,6 +58,7 @@ interface LazyRenderData {
     value: InspectableValue;
     context: RenderContext;
     depth: number;
+    parentKey?: string | number | null;
 }
 
 export class ObjectInspector {
@@ -160,9 +161,15 @@ export class ObjectInspector {
             
             if (this.options.showPrototype && (this.options.maxDepth === Infinity || depth < this.options.maxDepth)) {
                 try {
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                    const proto = Object.getPrototypeOf(value);
-                    if (proto && proto !== Object.prototype && proto !== Function.prototype) {
+                    const proto = Object.getPrototypeOf(value) as object | null;
+                    // For functions, show Function.prototype to match devtools behavior
+                    // For objects, skip Object.prototype as it's not very useful
+                    const shouldShowProto = proto && (
+                        (typeof value === 'function') || 
+                        (typeof value === 'object' && proto !== Object.prototype)
+                    );
+                    
+                    if (shouldShowProto) {
                         this.collectObjectRefs(proto as InspectableValue, refs, visited, depth + 1);
                     }
                 } catch {
@@ -340,7 +347,8 @@ export class ObjectInspector {
                         ...context,
                         path: (value !== null && typeof value === 'object') || typeof value === 'function' ? new Set(context.path).add(value) : context.path
                     },
-                    depth: depth + 1
+                    depth: depth + 1,
+                    parentKey: key
                 };
                 
                 // Store the lazy data using a WeakMap for proper cleanup
@@ -348,7 +356,7 @@ export class ObjectInspector {
                 
                 // If auto-expanded, render immediately but with limits
                 if (autoExpand) {
-                    this.renderChildrenLazy(childrenPlaceholder, lazyData.value, lazyData.depth, lazyData.context);
+                    this.renderChildrenLazy(childrenPlaceholder, lazyData.value, lazyData.depth, lazyData.context, lazyData.parentKey || undefined);
                 }
                 
                 node.appendChild(childrenPlaceholder);
@@ -452,7 +460,7 @@ export class ObjectInspector {
     }
 
 
-    private renderChildrenLazy(container: HTMLElement, value: InspectableValue, depth: number, context: RenderContext): void {
+    private renderChildrenLazy(container: HTMLElement, value: InspectableValue, depth: number, context: RenderContext, parentKey?: string | number): void {
         // Clear lazy flag since we're rendering now
         container.dataset.lazy = 'false';
 
@@ -464,13 +472,38 @@ export class ObjectInspector {
         } else if (isObjectWithKeys(value) || typeof value === 'function') {
             // Handle both objects and functions (functions can have properties)
             try {
-                let keys = Object.keys(value);
+                // For functions, show built-in properties first (like devtools does)
+                if (typeof value === 'function') {
+                    // Show standard function properties that devtools shows
+                    const functionProps = ['length', 'name'];
+                    for (const prop of functionProps) {
+                        try {
+                            const propValue = (value as unknown as Record<string, unknown>)[prop];
+                            if (propValue !== undefined) {
+                                const child = this.renderNode(propValue as InspectableValue, prop, depth, context);
+                                container.appendChild(child);
+                            }
+                        } catch {
+                            // Skip if property access fails
+                        }
+                    }
+                }
+                
+                // For prototype objects, use getOwnPropertyNames to show non-enumerable properties
+                // like browser devtools does
+                const isPrototype = parentKey === '__proto__';
+                let keys = isPrototype ? Object.getOwnPropertyNames(value) : Object.keys(value);
                 if (this.options.sortKeys) {
                     keys.sort();
                 }
 
                 for (let i = 0; i < keys.length; i++) {
                     const key = keys[i];
+                    // Skip function built-in properties we already showed
+                    if (typeof value === 'function' && (key === 'length' || key === 'name')) {
+                        continue;
+                    }
+                    
                     try {
                         const propValue = (value as Record<string, unknown>)[key];
                         const child = this.renderNode(propValue as InspectableValue, key, depth, context);
@@ -485,9 +518,15 @@ export class ObjectInspector {
 
             if (this.options.showPrototype && (this.options.maxDepth === Infinity || depth < this.options.maxDepth - 1)) {
                 try {
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                    const proto = Object.getPrototypeOf(value);
-                    if (proto && proto !== Object.prototype && proto !== Function.prototype) {
+                    const proto = Object.getPrototypeOf(value) as object | null;
+                    // For functions, show Function.prototype to match devtools behavior
+                    // For objects, skip Object.prototype as it's not very useful
+                    const shouldShowProto = proto && (
+                        (typeof value === 'function') || 
+                        (typeof value === 'object' && proto !== Object.prototype)
+                    );
+                    
+                    if (shouldShowProto) {
                         const protoNode = this.renderNode(proto as InspectableValue, '__proto__', depth, context);
                         protoNode.style.opacity = objectInspectorTheme.opacity.prototype;
                         protoNode.style.fontStyle = "italic";
@@ -519,7 +558,7 @@ export class ObjectInspector {
                     const lazyData = this.lazyDataMap.get(children);
                     
                     if (lazyData) {
-                        this.renderChildrenLazy(children, lazyData.value, lazyData.depth, lazyData.context);
+                        this.renderChildrenLazy(children, lazyData.value, lazyData.depth, lazyData.context, lazyData.parentKey || undefined);
                     }
                 }
                 children.style.display = 'block';
@@ -554,14 +593,15 @@ export class ObjectInspector {
     }
 
     private formatFunction(fn: (...args: unknown[]) => unknown): string {
+        // Get the function's actual name property (more reliable than parsing toString())
+        const name = fn.name || objectInspectorStrings.anonymousFunction;
+        
+        // Check if it's async
         const str = fn.toString();
-        const match = str.match(/^(async\s+)?(?:function\s*)?([^(]*)\(/);
-        if (match) {
-            const async = match[1] || '';
-            const name = match[2].trim() || objectInspectorStrings.anonymousFunction;
-            return `${async}${objectInspectorStrings.functionPrefix}${name}${objectInspectorStrings.functionSuffix}`;
-        }
-        return objectInspectorStrings.defaultFunction;
+        const isAsync = str.startsWith('async ') || str.includes('async function');
+        const asyncPrefix = isAsync ? 'async ' : '';
+        
+        return `${asyncPrefix}${objectInspectorStrings.functionPrefix}${name}${objectInspectorStrings.functionSuffix}`;
     }
 
     private escapeString(str: string): string {

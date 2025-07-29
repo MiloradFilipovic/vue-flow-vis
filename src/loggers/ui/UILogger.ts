@@ -45,7 +45,9 @@ export class UILogger implements Logger {
         this.uiManager = new UIManager(callbacks);
         
         // Initialize ObjectInspector
-        this.objectInspector = new ObjectInspector();
+        this.objectInspector = new ObjectInspector({
+            showPrototype: true,
+        });
         
         this.showPlaceholderText();
     }
