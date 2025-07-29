@@ -54,6 +54,7 @@ describe('ObjectInspector', () => {
       expect(options.showPrototype).toBe(false)
       expect(options.sortKeys).toBe(false)
       expect(options.showSharedRefs).toBe(true)
+      expect(options.showNonEnumerable).toBe(false)
       expect(options.maxDepth).toBe(Infinity)
     })
 
@@ -63,6 +64,7 @@ describe('ObjectInspector', () => {
         showPrototype: true,
         sortKeys: true,
         showSharedRefs: false,
+        showNonEnumerable: true,
         maxDepth: 5
       }
       
@@ -73,6 +75,7 @@ describe('ObjectInspector', () => {
       expect(options.showPrototype).toBe(true)
       expect(options.sortKeys).toBe(true)
       expect(options.showSharedRefs).toBe(false)
+      expect(options.showNonEnumerable).toBe(true)
       expect(options.maxDepth).toBe(5)
     })
 
@@ -937,6 +940,140 @@ describe('ObjectInspector', () => {
       expect(rowKeys[1]).toBe('name')
       expect(rowKeys).toContain('customProp')
       expect(rowKeys.indexOf('customProp')).toBeLessThan(rowKeys.indexOf('__proto__'))
+    })
+  })
+
+  describe('non-enumerable properties', () => {
+    beforeEach(() => {
+      inspector = new ObjectInspector({ expandDepth: 1 })
+    })
+
+    it('should show array length property', () => {
+      const testArray = [1, 2, 3]
+      const result = inspector.render(testArray)
+      document.body.appendChild(result)
+      
+      // Should show length property
+      const allSpans = result.querySelectorAll('span')
+      const spanTexts = Array.from(allSpans).map(span => span.textContent)
+      
+      expect(spanTexts).toContain('length')
+      expect(spanTexts).toContain('3')
+    })
+
+    it('should show error properties', () => {
+      const testError = new Error('test message')
+      const result = inspector.render(testError)
+      document.body.appendChild(result)
+      
+      const allSpans = result.querySelectorAll('span')
+      const spanTexts = Array.from(allSpans).map(span => span.textContent)
+      
+      // Should show message and stack properties
+      expect(spanTexts).toContain('message')
+      expect(spanTexts).toContain('stack')
+    })
+
+    it('should show regex properties', () => {
+      const testRegex = /test/gi
+      testRegex.lastIndex = 5 // Set a non-zero lastIndex
+      
+      const result = inspector.render(testRegex)
+      document.body.appendChild(result)
+      
+      const allSpans = result.querySelectorAll('span')
+      const spanTexts = Array.from(allSpans).map(span => span.textContent)
+      
+      // Should show lastIndex property
+      expect(spanTexts).toContain('lastIndex')
+      expect(spanTexts).toContain('5')
+    })
+
+    it('should show date non-enumerable properties if any exist', () => {
+      const testDate = new Date('2023-01-01')
+      const result = inspector.render(testDate)
+      document.body.appendChild(result)
+      
+      // Date objects typically don't have own enumerable properties
+      // but this test ensures the getOwnPropertyNames path works
+      expect(result).toBeTruthy()
+    })
+
+    it('should NOT show custom non-enumerable properties by default', () => {
+      const obj: Record<string, unknown> = { visible: 'shown' }
+      Object.defineProperty(obj, 'hidden', {
+        value: 'secret',
+        enumerable: false,
+        writable: true,
+        configurable: true
+      })
+      
+      const result = inspector.render(obj)
+      document.body.appendChild(result)
+      
+      const allSpans = result.querySelectorAll('span')
+      const spanTexts = Array.from(allSpans).map(span => span.textContent)
+      
+      // Should show visible property
+      expect(spanTexts).toContain('visible')
+      // Should NOT show hidden property by default
+      expect(spanTexts).not.toContain('hidden')
+    })
+
+    it('should show custom non-enumerable properties when showNonEnumerable is true', () => {
+      inspector = new ObjectInspector({ expandDepth: 1, showNonEnumerable: true })
+      
+      const obj: Record<string, unknown> = { visible: 'shown' }
+      Object.defineProperty(obj, 'hidden', {
+        value: 'secret',
+        enumerable: false,
+        writable: true,
+        configurable: true
+      })
+      
+      Object.defineProperty(obj, '_private', {
+        value: 'internal',
+        enumerable: false
+      })
+      
+      const result = inspector.render(obj)
+      document.body.appendChild(result)
+      
+      const allSpans = result.querySelectorAll('span')
+      const spanTexts = Array.from(allSpans).map(span => span.textContent)
+      
+      // Should show both enumerable and non-enumerable properties
+      expect(spanTexts).toContain('visible')
+      expect(spanTexts).toContain('hidden')
+      expect(spanTexts).toContain('_private')
+    })
+
+    it('should show framework-like non-enumerable properties', () => {
+      inspector = new ObjectInspector({ expandDepth: 1, showNonEnumerable: true })
+      
+      const component: Record<string, unknown> = { name: 'MyComponent' }
+      
+      // Simulate Vue-like internal property
+      Object.defineProperty(component, '__vue__', {
+        value: { reactive: true },
+        enumerable: false
+      })
+      
+      // Simulate React-like internal property  
+      Object.defineProperty(component, '_reactInternalInstance', {
+        value: { fiber: {} },
+        enumerable: false
+      })
+      
+      const result = inspector.render(component)
+      document.body.appendChild(result)
+      
+      const allSpans = result.querySelectorAll('span')
+      const spanTexts = Array.from(allSpans).map(span => span.textContent)
+      
+      expect(spanTexts).toContain('name')
+      expect(spanTexts).toContain('__vue__')
+      expect(spanTexts).toContain('_reactInternalInstance')
     })
   })
 

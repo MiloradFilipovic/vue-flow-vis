@@ -19,6 +19,8 @@ export interface ObjectInspectorOptions {
     showSharedRefs?: boolean;
     /** Maximum recursion depth to prevent stack overflow (default: Infinity) */
     maxDepth?: number;
+    /** Show non-enumerable properties for regular objects (default: false) */
+    showNonEnumerable?: boolean;
 }
 
 type ValueType = 'string' | 'number' | 'boolean' | 'null' | 'undefined' | 
@@ -71,6 +73,7 @@ export class ObjectInspector {
             showPrototype: options.showPrototype ?? false,
             sortKeys: options.sortKeys ?? false,
             showSharedRefs: options.showSharedRefs ?? true,
+            showNonEnumerable: options.showNonEnumerable ?? false,
             // Make sure maxDepth is integer and at least 1
             maxDepth: options.maxDepth !== undefined ? Math.max(1, Math.floor(options.maxDepth)) : Infinity
         };
@@ -465,9 +468,18 @@ export class ObjectInspector {
         container.dataset.lazy = 'false';
 
         if (isArray(value)) {
+            // Render array elements
             for (let i = 0; i < value.length; i++) {
                 const child = this.renderNode(value[i] as InspectableValue, i, depth, context);
                 container.appendChild(child);
+            }
+            
+            // Also show array's length property (non-enumerable)
+            try {
+                const lengthChild = this.renderNode(value.length, 'length', depth, context);
+                container.appendChild(lengthChild);
+            } catch {
+                // Skip if length access fails
             }
         } else if (isObjectWithKeys(value) || typeof value === 'function') {
             // Handle both objects and functions (functions can have properties)
@@ -489,10 +501,16 @@ export class ObjectInspector {
                     }
                 }
                 
-                // For prototype objects, use getOwnPropertyNames to show non-enumerable properties
-                // like browser devtools does
+                // For prototype objects and certain built-in types, use getOwnPropertyNames to show non-enumerable properties
+                // like browser devtools does. Also use it for regular objects if showNonEnumerable is enabled.
                 const isPrototype = parentKey === '__proto__';
-                let keys = isPrototype ? Object.getOwnPropertyNames(value) : Object.keys(value);
+                const isBuiltInType = Array.isArray(value) || 
+                    value instanceof Error || 
+                    value instanceof RegExp ||
+                    value instanceof Date;
+                const needsOwnPropertyNames = isPrototype || isBuiltInType || this.options.showNonEnumerable;
+                    
+                let keys = needsOwnPropertyNames ? Object.getOwnPropertyNames(value) : Object.keys(value);
                 if (this.options.sortKeys) {
                     keys.sort();
                 }

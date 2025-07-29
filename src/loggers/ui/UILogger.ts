@@ -47,6 +47,7 @@ export class UILogger implements Logger {
         // Initialize ObjectInspector
         this.objectInspector = new ObjectInspector({
             showPrototype: true,
+            showNonEnumerable: true,
         });
         
         this.showPlaceholderText();
