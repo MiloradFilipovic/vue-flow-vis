@@ -70,41 +70,6 @@ type FlowVisOptions = {
 }
 ```
 
-### Loggers
-
-The plugin provides three built-in logger types:
-
-**UI Logger (default)**
-```typescript
-app.use(FlowVisPlugin, { logger: 'ui' })
-```
-Shows an in-page resizable panel with component event details.
-Offers best UX but takes up screen space.
-
-**Console Logger**
-```typescript
-app.use(FlowVisPlugin, { logger: 'console' })
-```
-Outputs to browser console with optional batching and table formatting.
-Logs the original Vue debugger event (best for deep debugging).
-
-**No Logger**
-```typescript
-app.use(FlowVisPlugin, { logger: 'none' })
-```
-Disables logging entirely while keeping callbacks active.
-
-**Custom Logger**
-```typescript
-class MyLogger implements Logger {
-  tracked(data: RenderEventData): void { /* custom logic */ }
-  triggered(data: RenderEventData): void { /* custom logic */ }
-  error(error: Error, context?: unknown): void { /* custom logic */ }
-}
-
-app.use(FlowVisPlugin, { customLogger: new MyLogger() })
-```
-
 ## Development setup
 ```bash
 # Initialize husky hooks and install dependencies
