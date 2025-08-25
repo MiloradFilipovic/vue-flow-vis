@@ -40,7 +40,7 @@ export class UILogger implements Logger {
     private virtualScrollSpacer: HTMLDivElement | null = null;
     private currentEvents: Array<{type: 'tracked' | 'triggered', timestamp: string, eventData: RenderEventData, originalIndex: number}> = [];
     private currentComponentName: string | null = null;
-    private readonly ITEM_HEIGHT = 60; // Height of each event item in pixels
+    private readonly ITEM_HEIGHT = 30; // Height of each event item in pixels
     private readonly BUFFER_SIZE = 5; // Extra items to render outside viewport
     
     // Event details resize state
