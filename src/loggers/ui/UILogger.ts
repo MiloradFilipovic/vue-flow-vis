@@ -848,6 +848,15 @@ export class UILogger implements Logger {
         this.selectedComponent = null;
         this.selectedEvent = null;
         this.componentFilter = "";
+        
+        // Clean up virtual scrolling state
+        if (this.virtualScrollContainer) {
+            this.virtualScrollContainer.removeEventListener('scroll', this.handleScroll);
+        }
+        this.virtualScrollManager = null;
+        this.virtualScrollContainer = null;
+        this.virtualScrollContent = null;
+        this.virtualScrollSpacer = null;
         this.currentEvents = [];
         this.currentComponentName = null;
         
@@ -899,10 +908,9 @@ export class UILogger implements Logger {
                 (event.type === 'triggered' && this.showTriggeredEvents)
             );
 
-        // Clear the container
-        virtualContainer.innerHTML = "";
-
         if (visibleEvents.length === 0) {
+            // Clear the container and show no events message
+            virtualContainer.innerHTML = "";
             const noEvents = document.createElement("p");
             noEvents.id = `vue-flow-vis-no-events-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
             noEvents.textContent = group.events.length === 0 ? "No events recorded yet" : "No events to display";
@@ -911,12 +919,25 @@ export class UILogger implements Logger {
             noEvents.style.margin = "0";
             noEvents.style.padding = theme.spacing.xl;
             virtualContainer.appendChild(noEvents);
+            
+            // Clear virtual scrolling state
+            if (this.virtualScrollContainer) {
+                this.virtualScrollContainer.removeEventListener('scroll', this.handleScroll);
+            }
+            this.virtualScrollManager = null;
+            this.virtualScrollContainer = null;
+            this.virtualScrollContent = null;
+            this.virtualScrollSpacer = null;
+            this.currentEvents = [];
+            this.currentComponentName = null;
         } else {
             // If virtual scrolling is already set up, just update it
-            if (this.virtualScrollManager && this.virtualScrollContainer === virtualContainer) {
+            if (this.virtualScrollManager && this.virtualScrollContainer === virtualContainer && 
+                this.virtualScrollSpacer && this.virtualScrollContent) {
                 this.updateVirtualScrolling(componentName, visibleEvents);
             } else {
-                // First time setup or container changed
+                // First time setup or container changed - clear and setup fresh
+                virtualContainer.innerHTML = "";
                 this.virtualScrollContainer = virtualContainer;
                 this.setupVirtualScrolling(componentName, visibleEvents);
             }
