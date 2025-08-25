@@ -6,6 +6,7 @@ import { UIManager, UIManagerCallbacks } from "./UIManager";
 import { theme } from "./theme";
 import { VUE_DEBUGGER_EVENT_URL } from "./constants";
 import { ObjectInspector } from "./objectInspector/ObjectInspector";
+import { VirtualScrollManager } from "./VirtualScrollManager";
 
 type ComponentGroup = {
     sidebarItem: HTMLDivElement;
@@ -31,6 +32,16 @@ export class UILogger implements Logger {
     private showTriggeredEvents = true;
     private componentFilter = "";
     private objectInspector: ObjectInspector;
+    
+    // Virtual scrolling state
+    private virtualScrollManager: VirtualScrollManager | null = null;
+    private virtualScrollContainer: HTMLDivElement | null = null;
+    private virtualScrollContent: HTMLDivElement | null = null;
+    private virtualScrollSpacer: HTMLDivElement | null = null;
+    private currentEvents: Array<{type: 'tracked' | 'triggered', timestamp: string, eventData: RenderEventData, originalIndex: number}> = [];
+    private currentComponentName: string | null = null;
+    private readonly ITEM_HEIGHT = 30; // Height of each event item in pixels
+    private readonly BUFFER_SIZE = 5; // Extra items to render outside viewport
     
     // Event details resize state
     private isEventDetailsResizing = false;
@@ -214,7 +225,14 @@ export class UILogger implements Logger {
         group.events.push({type: eventType, timestamp, eventData});
         
         if (this.selectedComponent === componentName) {
-            this.displayComponentEvents(componentName);
+            // Use incremental update instead of full redisplay to preserve scroll position
+            const visibleEvents = group.events
+                .map((event, originalIndex) => ({ ...event, originalIndex }))
+                .filter(event => 
+                    (event.type === 'tracked' && this.showTrackedEvents) || 
+                    (event.type === 'triggered' && this.showTriggeredEvents)
+                );
+            this.updateVirtualScrolling(componentName, visibleEvents);
         }
         
         this.updateSidebarItem(componentName, componentPath);
@@ -331,19 +349,22 @@ export class UILogger implements Logger {
 
         eventsListArea.appendChild(eventsHeader);
 
-        const scrollableContainer = document.createElement("div");
-        scrollableContainer.id = `vue-flow-vis-scrollable-container-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
-        scrollableContainer.style.flex = "1";
-        scrollableContainer.style.overflow = "auto";
-        scrollableContainer.style.minHeight = "0";
-        scrollableContainer.style.width = "100%";
-        scrollableContainer.style.boxSizing = "border-box";
+        // Create virtual scrolling container
+        this.virtualScrollContainer = document.createElement("div");
+        this.virtualScrollContainer.id = `vue-flow-vis-virtual-container-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
+        this.virtualScrollContainer.style.flex = "1";
+        this.virtualScrollContainer.style.overflow = "auto";
+        this.virtualScrollContainer.style.minHeight = "0";
+        this.virtualScrollContainer.style.width = "100%";
+        this.virtualScrollContainer.style.boxSizing = "border-box";
 
-        // Check if there are any visible events
-        const visibleEvents = group.events.filter(event => 
-            (event.type === 'tracked' && this.showTrackedEvents) || 
-            (event.type === 'triggered' && this.showTriggeredEvents)
-        );
+        // Get filtered events for virtual scrolling with original indices
+        const visibleEvents = group.events
+            .map((event, originalIndex) => ({ ...event, originalIndex }))
+            .filter(event => 
+                (event.type === 'tracked' && this.showTrackedEvents) || 
+                (event.type === 'triggered' && this.showTriggeredEvents)
+            );
 
         if (visibleEvents.length === 0) {
             const noEvents = document.createElement("p");
@@ -353,127 +374,220 @@ export class UILogger implements Logger {
             noEvents.style.fontStyle = "italic";
             noEvents.style.margin = "0";
             noEvents.style.padding = theme.spacing.xl;
-            scrollableContainer.appendChild(noEvents);
+            this.virtualScrollContainer.appendChild(noEvents);
         } else {
-            const eventsContainer = document.createElement("div");
-            eventsContainer.id = `vue-flow-vis-events-container-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
-            eventsContainer.style.display = "flex";
-            eventsContainer.style.flexDirection = "column";
-            eventsContainer.style.gap = theme.spacing.md;
-            eventsContainer.style.width = "100%";
-            eventsContainer.style.boxSizing = "border-box";
-
-            group.events.forEach((event, eventIndex) => {
-                // Filter events based on visibility state
-                const shouldShow = (event.type === 'tracked' && this.showTrackedEvents) || 
-                                 (event.type === 'triggered' && this.showTriggeredEvents);
-                
-                if (!shouldShow) {
-                    return;
-                }
-
-                const eventDiv = document.createElement("div");
-                eventDiv.id = `vue-flow-vis-event-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
-                eventDiv.style.display = "flex";
-                eventDiv.style.alignItems = "center";
-                eventDiv.style.padding = theme.spacing.md;
-                eventDiv.style.border = `${theme.borderWidths.thin} solid ${theme.colors.border}`;
-                eventDiv.style.borderRadius = theme.borderRadius.md;
-                eventDiv.style.fontFamily = theme.fonts.primary;
-                eventDiv.style.fontSize = theme.fontSizes.sm;
-                eventDiv.style.cursor = "pointer";
-                eventDiv.style.transition = `background-color ${theme.transitions.normal}`;
-                eventDiv.style.width = `calc(100% - ${theme.spacing.xl})`;
-                eventDiv.style.boxSizing = "border-box";
-                eventDiv.style.marginLeft = theme.spacing.md;
-                eventDiv.style.marginRight = theme.spacing.md;
-
-                // Check if this event is selected and set initial background
-                const isSelected = this.selectedEvent && 
-                    this.selectedEvent.eventIndex === eventIndex && 
-                    this.selectedEvent.componentName === componentName;
-
-                eventDiv.style.backgroundColor = isSelected ? theme.colors.backgroundHover : theme.colors.backgroundSecondary;
-
-                eventDiv.onmouseenter = (): void => {
-                    eventDiv.style.backgroundColor = theme.colors.backgroundHover;
-                };
-
-                eventDiv.onmouseleave = (): void => {
-                    // Recalculate selection state on mouse leave
-                    const currentlySelected = this.selectedEvent && 
-                        this.selectedEvent.eventIndex === eventIndex && 
-                        this.selectedEvent.componentName === componentName;
-                    
-                    eventDiv.style.backgroundColor = currentlySelected ? theme.colors.backgroundHover : theme.colors.backgroundSecondary;
-                };
-
-                eventDiv.onclick = (): void => {
-                    this.selectEvent({
-                        type: event.type,
-                        timestamp: event.timestamp,
-                        componentName: componentName,
-                        eventData: event.eventData,
-                        eventIndex: eventIndex
-                    });
-                };
-
-                const iconSpan = document.createElement("span");
-                iconSpan.id = `vue-flow-vis-event-icon-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
-                iconSpan.innerHTML = event.type === 'tracked' ? createTrackIcon(14) : createTriggerIcon(14);
-                iconSpan.style.color = event.type === 'tracked' ? theme.colors.tracked : theme.colors.triggered;
-                iconSpan.style.marginRight = theme.spacing.md;
-                iconSpan.style.position = "relative";
-                iconSpan.style.top = theme.positioning.iconOffset2;
-                iconSpan.style.flexShrink = "0";
-
-                const eventSpan = document.createElement("span");
-                eventSpan.id = `vue-flow-vis-event-span-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
-                eventSpan.textContent = event.type === 'tracked' ? 'Render tracked' : 'Render triggered';
-                eventSpan.style.color = event.type === 'tracked' ? theme.colors.tracked : theme.colors.triggered;
-                eventSpan.style.flex = "1";
-
-                const timestampContainer = document.createElement("span");
-                timestampContainer.id = `vue-flow-vis-event-timestamp-container-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
-                timestampContainer.style.display = "flex";
-                timestampContainer.style.alignItems = "center";
-                timestampContainer.style.flexShrink = "0";
-                timestampContainer.style.gap = theme.spacing.xs;
-
-                const clockIcon = document.createElement("span");
-                clockIcon.id = `vue-flow-vis-event-clock-icon-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
-                clockIcon.innerHTML = createClockIcon(12);
-                clockIcon.style.color = theme.colors.textMuted;
-                clockIcon.style.flexShrink = "0";
-                clockIcon.style.position = "relative";
-                clockIcon.style.top = theme.positioning.iconOffset;
-
-                const timestampSpan = document.createElement("span");
-                timestampSpan.id = `vue-flow-vis-event-timestamp-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
-                timestampSpan.textContent = event.timestamp;
-                timestampSpan.style.color = theme.colors.textMuted;
-                timestampSpan.style.fontSize = theme.fontSizes.xs;
-                timestampSpan.style.fontFamily = theme.fonts.primary;
-
-                timestampContainer.appendChild(clockIcon);
-                timestampContainer.appendChild(timestampSpan);
-
-                eventDiv.appendChild(iconSpan);
-                eventDiv.appendChild(eventSpan);
-                eventDiv.appendChild(timestampContainer);
-                eventsContainer.appendChild(eventDiv);
-            });
-
-            scrollableContainer.appendChild(eventsContainer);
+            this.setupVirtualScrolling(componentName, visibleEvents);
         }
 
-        eventsListArea.appendChild(scrollableContainer);
+        eventsListArea.appendChild(this.virtualScrollContainer);
         contentArea.appendChild(eventsListArea);
 
         mainArea.appendChild(contentArea);
         
         // Add event details area if an event is selected
         this.updateEventDetailsArea();
+    }
+
+    private setupVirtualScrolling(componentName: string, events: Array<{type: 'tracked' | 'triggered', timestamp: string, eventData: RenderEventData, originalIndex: number}>): void {
+        if (!this.virtualScrollContainer) return;
+
+        // Store current events and component name
+        this.currentEvents = events;
+        this.currentComponentName = componentName;
+
+        // Create spacer div for total height
+        this.virtualScrollSpacer = document.createElement("div");
+        this.virtualScrollSpacer.id = `vue-flow-vis-virtual-spacer-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
+        this.virtualScrollSpacer.style.height = `${events.length * this.ITEM_HEIGHT}px`;
+        this.virtualScrollSpacer.style.pointerEvents = "none";
+
+        // Create content container for visible items
+        this.virtualScrollContent = document.createElement("div");
+        this.virtualScrollContent.id = `vue-flow-vis-virtual-content-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
+        this.virtualScrollContent.style.position = "absolute";
+        this.virtualScrollContent.style.top = "0";
+        this.virtualScrollContent.style.width = "100%";
+        this.virtualScrollContent.style.pointerEvents = "auto";
+
+        // Setup virtual scroll manager
+        const containerHeight = 300; // Default container height, will be updated dynamically
+        this.virtualScrollManager = new VirtualScrollManager({
+            itemHeight: this.ITEM_HEIGHT,
+            containerHeight: containerHeight,
+            buffer: this.BUFFER_SIZE,
+            totalItems: events.length
+        });
+
+        // Remove existing scroll listener if any
+        this.virtualScrollContainer.removeEventListener('scroll', this.handleScroll);
+
+        // Add scroll event listener
+        this.virtualScrollContainer.addEventListener('scroll', this.handleScroll);
+
+        // Initial render
+        this.handleScroll();
+
+        // Setup container with relative positioning
+        this.virtualScrollContainer.style.position = "relative";
+        this.virtualScrollContainer.appendChild(this.virtualScrollSpacer);
+        this.virtualScrollContainer.appendChild(this.virtualScrollContent);
+    }
+
+    private handleScroll = (): void => {
+        if (this.currentComponentName && this.currentEvents.length > 0) {
+            this.handleVirtualScroll(this.currentComponentName, this.currentEvents);
+        }
+    };
+
+    private handleVirtualScroll(componentName: string, events: Array<{type: 'tracked' | 'triggered', timestamp: string, eventData: RenderEventData, originalIndex: number}>): void {
+        if (!this.virtualScrollManager || !this.virtualScrollContainer || !this.virtualScrollContent) return;
+
+        const scrollTop = this.virtualScrollContainer.scrollTop;
+        const containerHeight = this.virtualScrollContainer.clientHeight;
+
+        // Update container height in virtual scroll manager
+        this.virtualScrollManager.updateOptions({ containerHeight });
+
+        const { startIndex, endIndex, offsetY } = this.virtualScrollManager.calculateVisibleRange(scrollTop);
+
+        // Clear existing content
+        this.virtualScrollContent.innerHTML = "";
+        this.virtualScrollContent.style.transform = `translateY(${offsetY}px)`;
+
+        // Render visible items
+        for (let i = startIndex; i < endIndex; i++) {
+            const event = events[i];
+            if (!event) continue;
+
+            const eventDiv = this.createEventElement(componentName, event, event.originalIndex);
+            this.virtualScrollContent.appendChild(eventDiv);
+        }
+    }
+
+    private createEventElement(componentName: string, event: {type: 'tracked' | 'triggered', timestamp: string, eventData: RenderEventData}, eventIndex: number): HTMLDivElement {
+        const eventDiv = document.createElement("div");
+        eventDiv.id = `vue-flow-vis-event-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
+        eventDiv.style.display = "flex";
+        eventDiv.style.alignItems = "center";
+        eventDiv.style.height = `${this.ITEM_HEIGHT}px`;
+        eventDiv.style.minHeight = `${this.ITEM_HEIGHT}px`;
+        eventDiv.style.padding = theme.spacing.md;
+        eventDiv.style.border = `${theme.borderWidths.thin} solid ${theme.colors.border}`;
+        eventDiv.style.borderRadius = theme.borderRadius.md;
+        eventDiv.style.fontFamily = theme.fonts.primary;
+        eventDiv.style.fontSize = theme.fontSizes.sm;
+        eventDiv.style.cursor = "pointer";
+        eventDiv.style.transition = `background-color ${theme.transitions.normal}`;
+        eventDiv.style.width = `calc(100% - ${theme.spacing.xl})`;
+        eventDiv.style.boxSizing = "border-box";
+        eventDiv.style.marginLeft = theme.spacing.md;
+        eventDiv.style.marginRight = theme.spacing.md;
+        eventDiv.style.marginBottom = theme.spacing.md;
+
+        // Check if this event is selected and set initial background
+        const isSelected = this.selectedEvent && 
+            this.selectedEvent.eventIndex === eventIndex && 
+            this.selectedEvent.componentName === componentName;
+
+        eventDiv.style.backgroundColor = isSelected ? theme.colors.backgroundHover : theme.colors.backgroundSecondary;
+
+        // Event delegation - store event index as data attribute
+        eventDiv.dataset.eventIndex = eventIndex.toString();
+        eventDiv.dataset.componentName = componentName;
+
+        eventDiv.onmouseenter = (): void => {
+            eventDiv.style.backgroundColor = theme.colors.backgroundHover;
+        };
+
+        eventDiv.onmouseleave = (): void => {
+            const currentlySelected = this.selectedEvent && 
+                this.selectedEvent.eventIndex === eventIndex && 
+                this.selectedEvent.componentName === componentName;
+            
+            eventDiv.style.backgroundColor = currentlySelected ? theme.colors.backgroundHover : theme.colors.backgroundSecondary;
+        };
+
+        eventDiv.onclick = (): void => {
+            this.selectEvent({
+                type: event.type,
+                timestamp: event.timestamp,
+                componentName: componentName,
+                eventData: event.eventData,
+                eventIndex: eventIndex
+            });
+        };
+
+        const iconSpan = document.createElement("span");
+        iconSpan.innerHTML = event.type === 'tracked' ? createTrackIcon(14) : createTriggerIcon(14);
+        iconSpan.style.color = event.type === 'tracked' ? theme.colors.tracked : theme.colors.triggered;
+        iconSpan.style.marginRight = theme.spacing.md;
+        iconSpan.style.position = "relative";
+        iconSpan.style.top = theme.positioning.iconOffset2;
+        iconSpan.style.flexShrink = "0";
+
+        const eventSpan = document.createElement("span");
+        eventSpan.textContent = event.type === 'tracked' ? 'Render tracked' : 'Render triggered';
+        eventSpan.style.color = event.type === 'tracked' ? theme.colors.tracked : theme.colors.triggered;
+        eventSpan.style.flex = "1";
+
+        const timestampContainer = document.createElement("span");
+        timestampContainer.style.display = "flex";
+        timestampContainer.style.alignItems = "center";
+        timestampContainer.style.flexShrink = "0";
+        timestampContainer.style.gap = theme.spacing.xs;
+
+        const clockIcon = document.createElement("span");
+        clockIcon.innerHTML = createClockIcon(12);
+        clockIcon.style.color = theme.colors.textMuted;
+        clockIcon.style.flexShrink = "0";
+        clockIcon.style.position = "relative";
+        clockIcon.style.top = theme.positioning.iconOffset;
+
+        const timestampSpan = document.createElement("span");
+        timestampSpan.textContent = event.timestamp;
+        timestampSpan.style.color = theme.colors.textMuted;
+        timestampSpan.style.fontSize = theme.fontSizes.xs;
+        timestampSpan.style.fontFamily = theme.fonts.primary;
+
+        timestampContainer.appendChild(clockIcon);
+        timestampContainer.appendChild(timestampSpan);
+
+        eventDiv.appendChild(iconSpan);
+        eventDiv.appendChild(eventSpan);
+        eventDiv.appendChild(timestampContainer);
+
+        return eventDiv;
+    }
+
+    private updateVirtualScrolling(componentName: string, events: Array<{type: 'tracked' | 'triggered', timestamp: string, eventData: RenderEventData, originalIndex: number}>): void {
+        if (!this.virtualScrollManager || !this.virtualScrollContainer || !this.virtualScrollSpacer) return;
+
+        // Update stored events
+        this.currentEvents = events;
+        this.currentComponentName = componentName;
+
+        // Check if user was scrolled near the bottom (within 100px)
+        const scrollTop = this.virtualScrollContainer.scrollTop;
+        const scrollHeight = this.virtualScrollContainer.scrollHeight;
+        const clientHeight = this.virtualScrollContainer.clientHeight;
+        const wasNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
+
+        // Update the total height for the new number of events
+        const newTotalHeight = events.length * this.ITEM_HEIGHT;
+        this.virtualScrollSpacer.style.height = `${newTotalHeight}px`;
+
+        // Update virtual scroll manager with new total items count
+        this.virtualScrollManager.updateOptions({ totalItems: events.length });
+
+        // Re-render visible items
+        this.handleVirtualScroll(componentName, events);
+
+        // If user was near the bottom, scroll to new bottom, otherwise preserve position
+        if (wasNearBottom) {
+            this.virtualScrollContainer.scrollTop = newTotalHeight - clientHeight;
+        } else {
+            this.virtualScrollContainer.scrollTop = scrollTop;
+        }
     }
 
     private selectEvent(event: SelectedEvent): void {
@@ -735,6 +849,17 @@ export class UILogger implements Logger {
         this.selectedEvent = null;
         this.componentFilter = "";
         
+        // Clean up virtual scrolling state
+        if (this.virtualScrollContainer) {
+            this.virtualScrollContainer.removeEventListener('scroll', this.handleScroll);
+        }
+        this.virtualScrollManager = null;
+        this.virtualScrollContainer = null;
+        this.virtualScrollContent = null;
+        this.virtualScrollSpacer = null;
+        this.currentEvents = [];
+        this.currentComponentName = null;
+        
         this.uiManager.clearSearchInput();
         sidebarContent.innerHTML = "";
         this.showPlaceholderText();
@@ -758,9 +883,6 @@ export class UILogger implements Logger {
         const group = this.componentGroups.get(componentName);
         if (!group) return;
 
-        const eventsListArea = document.querySelector(`#vue-flow-vis-events-list-area-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`) as HTMLDivElement;
-        if (!eventsListArea) return;
-
         // Update filter button colors
         const triggerButton = document.querySelector(`#vue-flow-vis-trigger-button-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`) as HTMLButtonElement;
         if (triggerButton) {
@@ -774,20 +896,21 @@ export class UILogger implements Logger {
             trackedButton.title = this.showTrackedEvents ? "Hide render tracked events" : "Show render tracked events";
         }
 
-        // Find and update only the scrollable container
-        const scrollableContainer = eventsListArea.querySelector(`#vue-flow-vis-scrollable-container-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`) as HTMLDivElement;
-        if (!scrollableContainer) return;
+        // Find the virtual scroll container
+        const virtualContainer = document.querySelector(`#vue-flow-vis-virtual-container-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`) as HTMLDivElement;
+        if (!virtualContainer) return;
 
-        // Clear the scrollable container
-        scrollableContainer.innerHTML = "";
-
-        // Check if there are any visible events
-        const visibleEvents = group.events.filter(event => 
-            (event.type === 'tracked' && this.showTrackedEvents) || 
-            (event.type === 'triggered' && this.showTriggeredEvents)
-        );
+        // Get filtered events for virtual scrolling with original indices
+        const visibleEvents = group.events
+            .map((event, originalIndex) => ({ ...event, originalIndex }))
+            .filter(event => 
+                (event.type === 'tracked' && this.showTrackedEvents) || 
+                (event.type === 'triggered' && this.showTriggeredEvents)
+            );
 
         if (visibleEvents.length === 0) {
+            // Clear the container and show no events message
+            virtualContainer.innerHTML = "";
             const noEvents = document.createElement("p");
             noEvents.id = `vue-flow-vis-no-events-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
             noEvents.textContent = group.events.length === 0 ? "No events recorded yet" : "No events to display";
@@ -795,118 +918,29 @@ export class UILogger implements Logger {
             noEvents.style.fontStyle = "italic";
             noEvents.style.margin = "0";
             noEvents.style.padding = theme.spacing.xl;
-            scrollableContainer.appendChild(noEvents);
+            virtualContainer.appendChild(noEvents);
+            
+            // Clear virtual scrolling state
+            if (this.virtualScrollContainer) {
+                this.virtualScrollContainer.removeEventListener('scroll', this.handleScroll);
+            }
+            this.virtualScrollManager = null;
+            this.virtualScrollContainer = null;
+            this.virtualScrollContent = null;
+            this.virtualScrollSpacer = null;
+            this.currentEvents = [];
+            this.currentComponentName = null;
         } else {
-            const eventsContainer = document.createElement("div");
-            eventsContainer.id = `vue-flow-vis-events-container-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}`;
-            eventsContainer.style.display = "flex";
-            eventsContainer.style.flexDirection = "column";
-            eventsContainer.style.gap = theme.spacing.md;
-            eventsContainer.style.width = "100%";
-            eventsContainer.style.boxSizing = "border-box";
-
-            group.events.forEach((event, eventIndex) => {
-                // Filter events based on visibility state
-                const shouldShow = (event.type === 'tracked' && this.showTrackedEvents) || 
-                                 (event.type === 'triggered' && this.showTriggeredEvents);
-                
-                if (!shouldShow) {
-                    return;
-                }
-
-                const eventDiv = document.createElement("div");
-                eventDiv.id = `vue-flow-vis-event-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
-                eventDiv.style.display = "flex";
-                eventDiv.style.alignItems = "center";
-                eventDiv.style.padding = theme.spacing.md;
-                eventDiv.style.border = `${theme.borderWidths.thin} solid ${theme.colors.border}`;
-                eventDiv.style.borderRadius = theme.borderRadius.md;
-                eventDiv.style.fontFamily = theme.fonts.primary;
-                eventDiv.style.fontSize = theme.fontSizes.sm;
-                eventDiv.style.cursor = "pointer";
-                eventDiv.style.transition = `background-color ${theme.transitions.normal}`;
-                eventDiv.style.width = `calc(100% - ${theme.spacing.xl})`;
-                eventDiv.style.boxSizing = "border-box";
-                eventDiv.style.marginLeft = theme.spacing.md;
-                eventDiv.style.marginRight = theme.spacing.md;
-
-                // Check if this event is selected and set initial background
-                const isSelected = this.selectedEvent && 
-                    this.selectedEvent.eventIndex === eventIndex && 
-                    this.selectedEvent.componentName === componentName;
-
-                eventDiv.style.backgroundColor = isSelected ? theme.colors.backgroundHover : theme.colors.backgroundSecondary;
-
-                eventDiv.onmouseenter = (): void => {
-                    eventDiv.style.backgroundColor = theme.colors.backgroundHover;
-                };
-
-                eventDiv.onmouseleave = (): void => {
-                    // Recalculate selection state on mouse leave
-                    const currentlySelected = this.selectedEvent && 
-                        this.selectedEvent.eventIndex === eventIndex && 
-                        this.selectedEvent.componentName === componentName;
-                    
-                    eventDiv.style.backgroundColor = currentlySelected ? theme.colors.backgroundHover : theme.colors.backgroundSecondary;
-                };
-
-                eventDiv.onclick = (): void => {
-                    this.selectEvent({
-                        type: event.type,
-                        timestamp: event.timestamp,
-                        componentName: componentName,
-                        eventData: event.eventData,
-                        eventIndex: eventIndex
-                    });
-                };
-
-                const iconSpan = document.createElement("span");
-                iconSpan.id = `vue-flow-vis-event-icon-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
-                iconSpan.innerHTML = event.type === 'tracked' ? createTrackIcon(14) : createTriggerIcon(14);
-                iconSpan.style.color = event.type === 'tracked' ? theme.colors.tracked : theme.colors.triggered;
-                iconSpan.style.marginRight = theme.spacing.md;
-                iconSpan.style.position = "relative";
-                iconSpan.style.top = theme.positioning.iconOffset2;
-                iconSpan.style.flexShrink = "0";
-
-                const eventSpan = document.createElement("span");
-                eventSpan.id = `vue-flow-vis-event-span-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
-                eventSpan.textContent = event.type === 'tracked' ? 'Render tracked' : 'Render triggered';
-                eventSpan.style.color = event.type === 'tracked' ? theme.colors.tracked : theme.colors.triggered;
-                eventSpan.style.flex = "1";
-
-                const timestampContainer = document.createElement("span");
-                timestampContainer.id = `vue-flow-vis-event-timestamp-container-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
-                timestampContainer.style.display = "flex";
-                timestampContainer.style.alignItems = "center";
-                timestampContainer.style.flexShrink = "0";
-                timestampContainer.style.gap = theme.spacing.xs;
-
-                const clockIcon = document.createElement("span");
-                clockIcon.id = `vue-flow-vis-event-clock-icon-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
-                clockIcon.innerHTML = createClockIcon(12);
-                clockIcon.style.color = theme.colors.textMuted;
-                clockIcon.style.flexShrink = "0";
-                clockIcon.style.position = "relative";
-                clockIcon.style.top = theme.positioning.iconOffset;
-
-                const timestampSpan = document.createElement("span");
-                timestampSpan.id = `vue-flow-vis-event-timestamp-${componentName.replace(/[^a-zA-Z0-9]/g, '-')}-${eventIndex}`;
-                timestampSpan.textContent = event.timestamp;
-                timestampSpan.style.color = theme.colors.textMuted;
-                timestampSpan.style.fontSize = theme.fontSizes.xs;
-                timestampSpan.style.fontFamily = theme.fonts.primary;
-
-                timestampContainer.appendChild(clockIcon);
-                timestampContainer.appendChild(timestampSpan);
-
-                eventDiv.appendChild(iconSpan);
-                eventDiv.appendChild(eventSpan);
-                eventDiv.appendChild(timestampContainer);
-                eventsContainer.appendChild(eventDiv);
-            });
-
-            scrollableContainer.appendChild(eventsContainer);
+            // If virtual scrolling is already set up, just update it
+            if (this.virtualScrollManager && this.virtualScrollContainer === virtualContainer && 
+                this.virtualScrollSpacer && this.virtualScrollContent) {
+                this.updateVirtualScrolling(componentName, visibleEvents);
+            } else {
+                // First time setup or container changed - clear and setup fresh
+                virtualContainer.innerHTML = "";
+                this.virtualScrollContainer = virtualContainer;
+                this.setupVirtualScrolling(componentName, visibleEvents);
+            }
         }
     }
 
