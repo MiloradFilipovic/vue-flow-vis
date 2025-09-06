@@ -79,15 +79,17 @@ export class ConsoleLogger implements Logger {
     )
 
     if (this.useTable) {
+      const triggeredValueChange = type === 'TRIGGERED' && 'oldValue' in event
       const tableData: Record<string, unknown> = {
         'Component Path': componentPath,
         'Property': event.key as string,
         'Operation': event.type,
         'Target Type': event.target?.constructor?.name,
-        'Target Value': debugEventValue(event),
-        ...(type === 'TRIGGERED' && 'oldValue' in event && {
+        ...(triggeredValueChange ? {
           'Old Value': (event as { oldValue: unknown }).oldValue,
-          'New Value': (event as { newValue: unknown }).newValue
+          'New Value': (event as { newValue: unknown }).newValue,
+        } : {
+          'Target Value': debugEventValue(event),
         })
       }
       // eslint-disable-next-line no-console
