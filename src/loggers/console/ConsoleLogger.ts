@@ -1,5 +1,6 @@
 import { DEFAULT_BATCH_WINDOW } from '../../constants'
 import type { Logger, RenderEventData } from '../../types'
+import { debugEventValue } from '../../utils/debugEventValue'
 
 export class ConsoleLogger implements Logger {
   private batchLogs: boolean
@@ -7,37 +8,37 @@ export class ConsoleLogger implements Logger {
   private batchWindow: number
   private componentEventBuffers = new Map<string, Array<{ type: string; data: RenderEventData; color: string }>>()
   private flushTimeout: ReturnType<typeof globalThis.setTimeout> | null = null
-  
+
   constructor(options: { batchLogs?: boolean; useTable?: boolean, batchWindow?: number } = {}) {
     this.batchLogs = options.batchLogs ?? true
     this.useTable = options.useTable ?? false
     this.batchWindow = options.batchWindow ?? DEFAULT_BATCH_WINDOW
   }
-  
+
   tracked(data: RenderEventData): void {
     this.logEvent('TRACKED', data, '#42b883')
   }
-  
+
   triggered(data: RenderEventData): void {
     this.logEvent('TRIGGERED', data, '#ff6b6b')
   }
-  
+
   error(error: Error, context?: unknown): void {
     // eslint-disable-next-line no-console
     console.error('[ComponentMonitor Error]', error, context)
   }
-  
+
   private logEvent(type: string, data: RenderEventData, color: string): void {
     const { componentName } = data
-    
+
     if (this.batchLogs) {
       // Buffer events by component and flush periodically
       if (!this.componentEventBuffers.has(componentName)) {
         this.componentEventBuffers.set(componentName, [])
       }
-      
+
       this.componentEventBuffers.get(componentName)!.push({ type, data, color })
-      
+
       // Debounce flush to group events that happen close together
       if (this.flushTimeout) {
         globalThis.clearTimeout(this.flushTimeout)
@@ -47,42 +48,43 @@ export class ConsoleLogger implements Logger {
       this.logSingleEvent(type, data, color)
     }
   }
-  
+
   private flushComponentEvents(): void {
     for (const [componentName, events] of this.componentEventBuffers.entries()) {
       if (events.length === 0) continue
-      
+
       // Create a fresh group for this batch
       // eslint-disable-next-line no-console
       console.groupCollapsed(`%c🔄 ${componentName} (${events.length} events)`, 'font-weight: bold; color: #666')
-      
+
       events.forEach(({ type, data, color }) => {
         this.logSingleEvent(type, data, color)
       })
-      
+
       // eslint-disable-next-line no-console
       console.groupEnd()
     }
-    
+
     // Clear all buffers
     this.componentEventBuffers.clear()
   }
-  
+
   private logSingleEvent(type: string, data: RenderEventData, color: string): void {
     const { componentName, event, componentPath } = data
-    
+
     // eslint-disable-next-line no-console
     console.log(
       `%c[${type}] ${componentName}`,
       `color: ${color}; font-weight: bold`
     )
-    
+
     if (this.useTable) {
       const tableData: Record<string, unknown> = {
         'Component Path': componentPath,
         'Property': event.key as string,
         'Operation': event.type,
         'Target Type': event.target?.constructor?.name,
+        'Target Value': debugEventValue(event),
         ...(type === 'TRIGGERED' && 'oldValue' in event && {
           'Old Value': (event as { oldValue: unknown }).oldValue,
           'New Value': (event as { newValue: unknown }).newValue

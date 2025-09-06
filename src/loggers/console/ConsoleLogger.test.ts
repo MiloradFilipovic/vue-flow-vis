@@ -301,6 +301,7 @@ describe('ConsoleLogger', () => {
         'Property': 'testProperty',
         'Operation': 'get',
         'Target Type': 'Object',
+        'Target Value': undefined,
       })
     })
 
@@ -328,6 +329,7 @@ describe('ConsoleLogger', () => {
         'Property': 'testProperty',
         'Operation': 'set',
         'Target Type': 'Object',
+        'Target Value': undefined,
         'Old Value': 'old',
         'New Value': 'new',
       })
