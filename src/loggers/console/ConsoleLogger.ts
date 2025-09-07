@@ -93,7 +93,7 @@ export class ConsoleLogger implements Logger {
         })
       }
       // eslint-disable-next-line no-console
-      console.table(tableData)
+      console.table(tableData, Object.keys(tableData))
       // eslint-disable-next-line no-console
       console.log(' [ORIGINAL EVENT]', event)
     } else {
