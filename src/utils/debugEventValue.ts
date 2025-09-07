@@ -5,7 +5,7 @@ export function debugEventValue(event: DebuggerEvent): unknown {
 
   if (isRef(event.target as unknown)) {
     const target = event.target as { value: unknown }
-    return target.value
+    return toValue(target.value)
   }
 
   if (type === 'Object') {
