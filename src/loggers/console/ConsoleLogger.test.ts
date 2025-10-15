@@ -303,7 +303,7 @@ describe('ConsoleLogger', () => {
         'Target Type': 'Object',
         'Target Value': undefined,
       }
-      expect(mockConsole.table).toHaveBeenCalledWith(expected, Object.keys(expected))
+      expect(mockConsole.table).toHaveBeenCalledWith(expected)
     })
 
     it('should include old/new values for triggered events in table mode', () => {
@@ -333,7 +333,7 @@ describe('ConsoleLogger', () => {
         'Old Value': 'old',
         'New Value': 'new',
       }
-      expect(mockConsole.table).toHaveBeenCalledWith(expected, Object.keys(expected))
+      expect(mockConsole.table).toHaveBeenCalledWith(expected)
     })
 
     it('should log original event in table mode', () => {
