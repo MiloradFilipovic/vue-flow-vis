@@ -296,12 +296,14 @@ describe('ConsoleLogger', () => {
       
       logger.tracked(mockEventData)
 
-      expect(mockConsole.table).toHaveBeenCalledWith({
+      let expected = {
         'Component Path': 'App → TestComponent',
         'Property': 'testProperty',
         'Operation': 'get',
         'Target Type': 'Object',
-      })
+        'Target Value': undefined,
+      }
+      expect(mockConsole.table).toHaveBeenCalledWith(expected, Object.keys(expected))
     })
 
     it('should include old/new values for triggered events in table mode', () => {
@@ -323,14 +325,15 @@ describe('ConsoleLogger', () => {
       
       logger.triggered(triggeredEvent)
 
-      expect(mockConsole.table).toHaveBeenCalledWith({
+      let expected = {
         'Component Path': 'App → TestComponent',
         'Property': 'testProperty',
         'Operation': 'set',
         'Target Type': 'Object',
         'Old Value': 'old',
         'New Value': 'new',
-      })
+      }
+      expect(mockConsole.table).toHaveBeenCalledWith(expected, Object.keys(expected))
     })
 
     it('should log original event in table mode', () => {
